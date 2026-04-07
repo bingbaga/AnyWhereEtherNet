@@ -39,6 +39,7 @@ var (
 )
 
 func main() {
+	fmt.Println("AnyWhereEtherNet starting...")
 	flag.Parse()
 	if *version {
 		fmt.Printf("etherguard-go %s\n%s-%s\n%s\n\nA full mesh layer 2 VPN powered by Floyd Warshall algorithm.\nInformation available at https://github.com/bingbaga/AnyWhereEtherNet.\nCopyright (C) Kusakabe Si <si@kskb.eu.org>.\n", Version, runtime.GOOS, runtime.GOARCH, tap.VPP_SUPPORT)
