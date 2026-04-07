@@ -2,7 +2,7 @@
 [Unit]
 Description=Etherguard edgenode
 After=network.target
-# wg-quick.service
+# systemd service example for EtherGuard edge
 
 [Service]
 User=root

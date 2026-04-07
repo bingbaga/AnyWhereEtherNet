@@ -16,7 +16,7 @@ NodeName: EgNet001
 PostScript: ""
 DefaultTTL: 200
 L2FIBTimeout: 3600
-PrivKey: lyQLML+TbAZvrJpa25ARTAfMvHVQa/a1n3Wcwo7nkDU=
+IdentityPrivateKey: lyQLML+TbAZvrJpa25ARTAfMvHVQa/a1n3Wcwo7nkDU=
 ListenPort: 3001
 FwMark: 0
 DisabledAf:
@@ -43,11 +43,11 @@ DynamicRoute:
   SaveNewPeers: true
   SuperNode:
     UseSuperNode: true
-    PSKey: Ld8FN/TNcmR21xdhMTCSeZBxrJ1z+FFvnQSnTwSxgUE=
+    SharedKey: Ld8FN/TNcmR21xdhMTCSeZBxrJ1z+FFvnQSnTwSxgUE=
     EndpointV4: 127.0.0.1:3456
-    PubKeyV4: j6+qNLYwGLILh4VKXc2fGeQy828RnRasA6zKHk3T/kw=
+    PeerKeyV4: j6+qNLYwGLILh4VKXc2fGeQy828RnRasA6zKHk3T/kw=
     EndpointV6: ""
-    PubKeyV6: SdrhLctYIQ7lEurGNn0ZjM8ezkPaKPCI+nAbrnwvUDA=
+    PeerKeyV6: SdrhLctYIQ7lEurGNn0ZjM8ezkPaKPCI+nAbrnwvUDA=
     EndpointEdgeAPIUrl: http://127.0.0.1:3456/eg_net/eg_api
     SkipLocalIP: false
     AdditionalLocalIP: []

@@ -33,7 +33,7 @@ func printExampleEdgeConf() {
 	fmt.Print(string(toprint))
 }
 
-func Edge(configPath string, useUAPI bool, printExample bool, bindmode string) (err error) {
+func Edge(configPath string, printExample bool, bindmode string) (err error) {
 	if printExample {
 		printExampleEdgeConf()
 		return nil
@@ -68,10 +68,8 @@ func Edge(configPath string, useUAPI bool, printExample bool, bindmode string) (
 		fmt.Sprintf("(%s) ", NodeName),
 	)
 
-	if err != nil {
-		logger.Errorf("UAPI listen error: %v", err)
-		os.Exit(ExitSetupFailed)
-		return
+	if err := validateTransportConfig(econfig.Transport); err != nil {
+		return err
 	}
 
 	var thetap tap.Device
@@ -124,27 +122,31 @@ func Edge(configPath string, useUAPI bool, printExample bool, bindmode string) (
 
 	the_device := device.NewDevice(thetap, econfig.NodeID, conn.NewDefaultBind(EnabledAf, bindmode, econfig.FwMark), logger, graph, false, configPath, &econfig, nil, nil, Version)
 	defer the_device.Close()
-	pk, err := device.Str2PriKey(econfig.PrivKey)
+	pk, err := device.Str2PriKey(econfig.GetIdentityPrivateKey())
 	if err != nil {
 		fmt.Println("Error decode base64 ", err)
 		return err
 	}
 	the_device.SetPrivateKey(pk)
-	the_device.IpcSet("fwmark=" + fmt.Sprint(econfig.FwMark) + "\n")
-	the_device.IpcSet("listen_port=" + strconv.Itoa(econfig.ListenPort) + "\n")
-	the_device.IpcSet("replace_peers=true\n")
+	if err := the_device.BindSetMark(econfig.FwMark); err != nil {
+		return err
+	}
+	if err := the_device.SetListenPort(uint16(econfig.ListenPort)); err != nil {
+		return err
+	}
+	the_device.RemoveAllPeers()
 	for _, peerconf := range econfig.Peers {
-		pk, err := device.Str2PubKey(peerconf.PubKey)
+		pk, err := device.Str2PubKey(peerconf.GetPeerKey())
 		if err != nil {
 			fmt.Println("Error decode base64 ", err)
 			return err
 		}
 		the_device.NewPeer(pk, peerconf.NodeID, false, peerconf.PersistentKeepalive)
-		if peerconf.EndPoint != "" {
+		if endpoint := peerconf.GetTransportEndpoint(); endpoint != "" {
 			peer := the_device.LookupPeer(pk)
-			err = peer.SetEndpointFromConnURL(peerconf.EndPoint, EnabledAf, econfig.AfPrefer, peerconf.Static)
+			err = peer.SetEndpointFromConnURL(endpoint, EnabledAf, econfig.AfPrefer, peerconf.Static)
 			if err != nil {
-				logger.Errorf("Failed to set endpoint %v: %w", peerconf.EndPoint, err)
+				logger.Errorf("Failed to set endpoint %v: %w", endpoint, err)
 				return err
 			}
 		}
@@ -154,12 +156,12 @@ func Edge(configPath string, useUAPI bool, printExample bool, bindmode string) (
 		S4 := true
 		S6 := true
 		if econfig.DynamicRoute.SuperNode.EndpointV4 != "" && EnabledAf.IPv4 {
-			pk, err := device.Str2PubKey(econfig.DynamicRoute.SuperNode.PubKeyV4)
+			pk, err := device.Str2PubKey(econfig.DynamicRoute.SuperNode.GetPeerKeyV4())
 			if err != nil {
 				fmt.Println("Error decode base64 ", err)
 				return err
 			}
-			psk, err := device.Str2PSKey(econfig.DynamicRoute.SuperNode.PSKey)
+			psk, err := device.Str2PSKey(econfig.DynamicRoute.SuperNode.GetSharedKey())
 			if err != nil {
 				fmt.Println("Error decode base64 ", err)
 				return err
@@ -185,11 +187,11 @@ func Edge(configPath string, useUAPI bool, printExample bool, bindmode string) (
 			}
 		}
 		if econfig.DynamicRoute.SuperNode.EndpointV6 != "" && EnabledAf.IPv6 {
-			pk, err := device.Str2PubKey(econfig.DynamicRoute.SuperNode.PubKeyV6)
+			pk, err := device.Str2PubKey(econfig.DynamicRoute.SuperNode.GetPeerKeyV6())
 			if err != nil {
 				fmt.Println("Error decode base64 ", err)
 			}
-			psk, err := device.Str2PSKey(econfig.DynamicRoute.SuperNode.PSKey)
+			psk, err := device.Str2PSKey(econfig.DynamicRoute.SuperNode.GetSharedKey())
 			if err != nil {
 				fmt.Println("Error decode base64 ", err)
 				return err
@@ -223,10 +225,6 @@ func Edge(configPath string, useUAPI bool, printExample bool, bindmode string) (
 
 	errs := make(chan error)
 	term := make(chan os.Signal, 1)
-
-	if useUAPI {
-		startUAPI(NodeName, logger, the_device, errs)
-	}
 
 	if econfig.PostScript != "" {
 		envs := make(map[string]string)

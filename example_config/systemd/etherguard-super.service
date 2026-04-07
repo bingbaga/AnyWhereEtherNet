@@ -7,9 +7,7 @@ After=network.target
 User=root
 Group=root
 Type=notify
-ExecStartPre=+mkdir -p /var/run/wireguard
-#ExecStartPre=+chgrp etherguard /var/run/wireguard
-#ExecStartPre=+chmod 775 /var/run/wireguard
+# No auxiliary socket directory is required in the current transport-agnostic runtime.
 ExecStart=etherguard-go -config /etc/eggo/super.yaml -mode super
 Nice=5
 

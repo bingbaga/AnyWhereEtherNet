@@ -245,8 +245,8 @@ func GenSuperCfg(SMCinfigPath string, printExample bool) (err error) {
 	SuperPeerInfo := make([]mtypes.SuperPeerInfo, 0, ModeIDmax)
 	PrivKeyS4, PubKeyS4 := device.RandomKeyPair()
 	PrivKeyS6, PubKeyS6 := device.RandomKeyPair()
-	sconfig.PrivKeyV4 = PrivKeyS4.ToString()
-	sconfig.PrivKeyV6 = PrivKeyS6.ToString()
+	sconfig.SetIdentityPrivateKeyV4(PrivKeyS4.ToString())
+	sconfig.SetIdentityPrivateKeyV6(PrivKeyS6.ToString())
 	allec := make(map[mtypes.Vertex]mtypes.EdgeConfig)
 	peerceconf, _ := GetExampleEdgeConf(sconfig.EdgeTemplate, false)
 	for _, ii := range NodeIDs {
@@ -275,16 +275,16 @@ func GenSuperCfg(SMCinfigPath string, printExample bool) (err error) {
 		peerceconf.Interface.IPv6LLPrefix = IPv6LLBlock
 
 		peerceconf.NodeID = i
-		peerceconf.DynamicRoute.SuperNode.PubKeyV4 = PubKeyS4.ToString()
-		peerceconf.DynamicRoute.SuperNode.PubKeyV6 = PubKeyS6.ToString()
-		peerceconf.DynamicRoute.SuperNode.PSKey = PSKeyE.ToString()
-		peerceconf.PrivKey = PrivKeyE.ToString()
+		peerceconf.DynamicRoute.SuperNode.PeerKeyV4 = PubKeyS4.ToString()
+		peerceconf.DynamicRoute.SuperNode.PeerKeyV6 = PubKeyS6.ToString()
+		peerceconf.DynamicRoute.SuperNode.SharedKey = PSKeyE.ToString()
+		peerceconf.SetIdentityPrivateKey(PrivKeyE.ToString())
 
 		SuperPeerInfo = append(SuperPeerInfo, mtypes.SuperPeerInfo{
 			NodeID:         i,
 			Name:           SMCfg.NetworkName + idstr,
-			PubKey:         PubKeyE.ToString(),
-			PSKey:          PSKeyE.ToString(),
+			PeerKey:        PubKeyE.ToString(),
+			SharedKey:      PSKeyE.ToString(),
 			AdditionalCost: peerceconf.DynamicRoute.AdditionalCost,
 			SkipLocalIP:    peerceconf.DynamicRoute.SuperNode.SkipLocalIP,
 		})

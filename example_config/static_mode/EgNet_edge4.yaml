@@ -16,7 +16,7 @@ NodeName: EgNet4
 PostScript: ""
 DefaultTTL: 200
 L2FIBTimeout: 3600
-PrivKey: t5DUQqA4/G7ONUVroXuYx94iC8ZEOGW/LH7GT3MfL/8=
+IdentityPrivateKey: t5DUQqA4/G7ONUVroXuYx94iC8ZEOGW/LH7GT3MfL/8=
 ListenPort: 3004
 DisabledAf:
   IPv4: false
@@ -39,11 +39,11 @@ DynamicRoute:
   SaveNewPeers: true
   SuperNode:
     UseSuperNode: false
-    PSKey: ""
+    SharedKey: ""
     EndpointV4: ""
-    PubKeyV4: ""
+    PeerKeyV4: ""
     EndpointV6: ""
-    PubKeyV6: ""
+    PeerKeyV6: ""
     EndpointEdgeAPIUrl: ""
     SkipLocalIP: false
     AdditionalLocalIP: []
@@ -104,20 +104,20 @@ NextHopTable:
 ResetEndPointInterval: 600
 Peers:
 - NodeID: 2
-  PubKey: 8RSl6sMj1jjkHt/OO+hOKpaxvo1ISaqc6eMXx7jheRY=
-  PSKey: 4gok+3nuckAx48r4hf2DkK3wFEosyXwJRUeBLKeN0Co=
+  PeerKey: 8RSl6sMj1jjkHt/OO+hOKpaxvo1ISaqc6eMXx7jheRY=
+  SharedKey: 4gok+3nuckAx48r4hf2DkK3wFEosyXwJRUeBLKeN0Co=
   EndPoint: 127.0.0.1:3002
   PersistentKeepalive: 0
   Static: true
 - NodeID: 3
-  PubKey: qPvElhtbEz9OwRtwQDoYye1QERPqeerSGSOluCL95mE=
-  PSKey: UZgFXKNnnt5J3MSfCS7tAd3Xe/blgvWrOXWS3sjBEZo=
+  PeerKey: qPvElhtbEz9OwRtwQDoYye1QERPqeerSGSOluCL95mE=
+  SharedKey: UZgFXKNnnt5J3MSfCS7tAd3Xe/blgvWrOXWS3sjBEZo=
   EndPoint: 127.0.0.1:3003
   PersistentKeepalive: 0
   Static: true
 - NodeID: 6
-  PubKey: RaHC+RMt/9EUDaueRCiw7McOYjKzVemOFxtGmDYRCEc=
-  PSKey: rdS/i+Ubu8IyMqEbIaJThtcTZNfOx8/8PG7GDHu3XD4=
+  PeerKey: RaHC+RMt/9EUDaueRCiw7McOYjKzVemOFxtGmDYRCEc=
+  SharedKey: rdS/i+Ubu8IyMqEbIaJThtcTZNfOx8/8PG7GDHu3XD4=
   EndPoint: 127.0.0.1:3006
   PersistentKeepalive: 0
   Static: true

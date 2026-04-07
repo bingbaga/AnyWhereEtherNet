@@ -234,11 +234,11 @@ func GenNMCfg(NMCinfigPath string, enableP2P bool, printExample bool) (err error
 		}
 	}
 	econfig.DynamicRoute.NTPConfig.Servers = make([]string, 0)
-	econfig.DynamicRoute.SuperNode.PSKey = ""
+	econfig.DynamicRoute.SuperNode.SharedKey = ""
 	econfig.DynamicRoute.SuperNode.EndpointV4 = ""
 	econfig.DynamicRoute.SuperNode.EndpointV6 = ""
-	econfig.DynamicRoute.SuperNode.PubKeyV4 = ""
-	econfig.DynamicRoute.SuperNode.PubKeyV6 = ""
+	econfig.DynamicRoute.SuperNode.PeerKeyV4 = ""
+	econfig.DynamicRoute.SuperNode.PeerKeyV6 = ""
 	econfig.DynamicRoute.SuperNode.EndpointEdgeAPIUrl = ""
 
 	var pskdb device.PSKDB
@@ -249,7 +249,7 @@ func GenNMCfg(NMCinfigPath string, enableP2P bool, printExample bool) (err error
 		econfig.Interface.IPv4CIDR = NMCfg.EdgeNode.IPv4Range
 		econfig.Interface.IPv6CIDR = NMCfg.EdgeNode.IPv6Range
 		econfig.Interface.IPv6LLPrefix = NMCfg.EdgeNode.IPv6LLRange
-		econfig.PrivKey = Edge.PrivKey
+		econfig.SetIdentityPrivateKey(Edge.PrivKey)
 		econfig.NodeID = NodeID
 		idstr := fmt.Sprintf("%0"+strconv.Itoa(len(MaxNodeID.ToString()))+"d", NodeID)
 		if NMCfg.NetworkIFNameID {
@@ -272,8 +272,8 @@ func GenNMCfg(NMCinfigPath string, enableP2P bool, printExample bool) (err error
 		for CNodeID, _ := range Edge.ConnectedEdge {
 			econfig.Peers = append(econfig.Peers, mtypes.PeerInfo{
 				NodeID:              CNodeID,
-				PubKey:              edge_infos[CNodeID].PubKey,
-				PSKey:               pskdb.GetPSK(NodeID, CNodeID).ToString(),
+				PeerKey:             edge_infos[CNodeID].PubKey,
+				SharedKey:           pskdb.GetPSK(NodeID, CNodeID).ToString(),
 				EndPoint:            edge_infos[CNodeID].Endpoint,
 				PersistentKeepalive: PersistentKeepalive,
 				Static:              true,

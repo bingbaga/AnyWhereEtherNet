@@ -94,6 +94,9 @@ func (peer *Peer) SendKeepalive() {
 }
 
 func (peer *Peer) SendHandshakeInitiation(isRetry bool) error {
+	if !peer.device.usesNoiseTransport() {
+		return nil
+	}
 	if !isRetry {
 		atomic.StoreUint32(&peer.timers.handshakeAttempts, 0)
 	}
@@ -140,6 +143,9 @@ func (peer *Peer) SendHandshakeInitiation(isRetry bool) error {
 }
 
 func (peer *Peer) SendHandshakeResponse() error {
+	if !peer.device.usesNoiseTransport() {
+		return nil
+	}
 	peer.handshake.mutex.Lock()
 	peer.handshake.lastSentHandshake = time.Now()
 	peer.handshake.mutex.Unlock()
@@ -193,6 +199,9 @@ func (device *Device) SendHandshakeCookie(initiatingElem *QueueHandshakeElement)
 }
 
 func (peer *Peer) keepKeyFreshSending() {
+	if !peer.device.usesNoiseTransport() {
+		return
+	}
 	keypair := peer.keypairs.Current()
 	if keypair == nil {
 		return
@@ -309,6 +318,26 @@ func (peer *Peer) SendStagedPackets() {
 top:
 	if len(peer.queue.staged) == 0 || !peer.device.isUp() {
 		return
+	}
+
+	if !peer.device.usesNoiseTransport() {
+		for {
+			select {
+			case elem := <-peer.queue.staged:
+				elem.peer = peer
+				elem.Lock()
+				if peer.isRunning.Get() {
+					peer.queue.outbound.c <- elem
+					elem.Unlock()
+				} else {
+					elem.Unlock()
+					peer.device.PutMessageBuffer(elem.buffer)
+					peer.device.PutOutboundElement(elem)
+				}
+			default:
+				return
+			}
+		}
 	}
 
 	keypair := peer.keypairs.Current()
@@ -449,7 +478,7 @@ func (peer *Peer) RoutineSequentialSender() {
 
 		// send message and return buffer to pool
 
-		err := peer.SendBuffer(elem.packet)
+		err := peer.SendTransportBuffer(elem)
 		if len(elem.packet) != MessageKeepaliveSize {
 			peer.timersDataSent()
 		}

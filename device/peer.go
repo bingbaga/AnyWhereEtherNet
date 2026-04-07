@@ -257,6 +257,8 @@ type Peer struct {
 	StaticConn       bool //if true, this peer will not write to config file when roaming, and the endpoint will be reset periodically
 	ConnURL          string
 	ConnAF           conn.EnabledAf
+	xorSendSeq       uint32
+	xorReplay        xorReplayFilter
 
 	// These fields are accessed with atomic operations, which must be
 	// 64-bit aligned even on 32-bit platforms. Go guarantees that an
@@ -654,22 +656,22 @@ func (device *Device) SaveToConfig(peer *Peer, endpoint conn.Endpoint) {
 		pskstr = ""
 	}
 	for _, peerfile := range device.EdgeConfig.Peers {
-		if peerfile.NodeID == peer.ID && peerfile.PubKey == pubkeystr {
+		if peerfile.NodeID == peer.ID && peerfile.GetPeerKey() == pubkeystr {
 			foundInFile = true
 			if !peerfile.Static {
 				peerfile.EndPoint = url
 			}
-		} else if peerfile.NodeID == peer.ID || peerfile.PubKey == pubkeystr {
-			panic("Found NodeID match " + peer.ID.ToString() + ", but PubKey Not match %s enrties in config file" + pubkeystr)
+		} else if peerfile.NodeID == peer.ID || peerfile.GetPeerKey() == pubkeystr {
+			panic("Found NodeID match " + peer.ID.ToString() + ", but PeerKey Not match %s enrties in config file" + pubkeystr)
 		}
 	}
 	if !foundInFile {
 		device.EdgeConfig.Peers = append(device.EdgeConfig.Peers, mtypes.PeerInfo{
-			NodeID:   peer.ID,
-			PubKey:   pubkeystr,
-			PSKey:    pskstr,
-			EndPoint: url,
-			Static:   false,
+			NodeID:    peer.ID,
+			PeerKey:   pubkeystr,
+			SharedKey: pskstr,
+			EndPoint:  url,
+			Static:    false,
 		})
 	}
 	go device.SaveConfig()

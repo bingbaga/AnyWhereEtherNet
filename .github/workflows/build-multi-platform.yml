@@ -1,0 +1,149 @@
+name: Build Multi-Platform Artifacts
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - "v*"
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-artifacts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: 386
+            goarm: ""
+            target: linux-x86
+            archive_ext: tar.gz
+          - goos: linux
+            goarch: amd64
+            goarm: ""
+            target: linux-amd64
+            archive_ext: tar.gz
+          - goos: linux
+            goarch: arm64
+            goarm: ""
+            target: linux-arm64
+            archive_ext: tar.gz
+          - goos: linux
+            goarch: arm
+            goarm: "7"
+            target: linux-armv7
+            archive_ext: tar.gz
+          - goos: windows
+            goarch: amd64
+            goarm: ""
+            target: windows-amd64
+            archive_ext: zip
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Resolve build version
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(git describe --tags --always --dirty 2>/dev/null || true)"
+          if [ -z "$VERSION" ]; then
+            VERSION="${GITHUB_SHA::7}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build binary
+        id: build
+        shell: bash
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+
+          binary_name="etherguard-go"
+          if [ "$GOOS" = "windows" ]; then
+            binary_name="${binary_name}.exe"
+          fi
+
+          build_env=(
+            "CGO_ENABLED=0"
+            "GOOS=$GOOS"
+            "GOARCH=$GOARCH"
+          )
+          if [ -n "$GOARM" ]; then
+            build_env+=("GOARM=$GOARM")
+          fi
+
+          env "${build_env[@]}" \
+            go build \
+            -trimpath \
+            -ldflags "-s -w -X main.Version=$VERSION" \
+            -o "dist/$binary_name" \
+            .
+
+          echo "binary_name=$binary_name" >> "$GITHUB_OUTPUT"
+
+      - name: Package artifact
+        id: package
+        shell: bash
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+          BINARY_NAME: ${{ steps.build.outputs.binary_name }}
+        run: |
+          set -euo pipefail
+
+          archive_base="etherguard-go-${VERSION}-${{ matrix.target }}"
+          package_dir="dist/${archive_base}"
+          mkdir -p "$package_dir"
+
+          cp "dist/${BINARY_NAME}" "$package_dir/"
+          cp LICENSE "$package_dir/"
+
+          if [ "${{ matrix.archive_ext }}" = "zip" ]; then
+            (
+              cd dist
+              zip -r "${archive_base}.zip" "${archive_base}"
+            )
+            archive_name="${archive_base}.zip"
+          else
+            tar -C dist -czf "dist/${archive_base}.tar.gz" "${archive_base}"
+            archive_name="${archive_base}.tar.gz"
+          fi
+
+          echo "archive_name=$archive_name" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.archive_name }}
+          path: dist/${{ steps.package.outputs.archive_name }}
+          if-no-files-found: error

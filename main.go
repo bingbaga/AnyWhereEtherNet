@@ -18,7 +18,6 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/KusakabeSi/EtherGuard-VPN/gencfg"
-	"github.com/KusakabeSi/EtherGuard-VPN/ipc"
 	"github.com/KusakabeSi/EtherGuard-VPN/path"
 	"github.com/KusakabeSi/EtherGuard-VPN/tap"
 )
@@ -28,18 +27,12 @@ const (
 	ExitSetupFailed  = 1
 )
 
-const (
-	ENV_EG_UAPI_FD  = "EG_UAPI_FD"
-	ENV_EG_UAPI_DIR = "EG_UAPI_DIR"
-)
-
 var (
 	tconfig      = flag.String("config", "", "Config path for the interface.")
 	mode         = flag.String("mode", "", "Running mode. [super|edge|solve|gencfg]")
 	printExample = flag.Bool("example", false, "Print example config")
 	cfgmode      = flag.String("cfgmode", "", "Running mode for generated config. [none|super|p2p]")
 	bind         = flag.String("bind", "linux", "UDP socket bind mode. [linux|std]\nYou may need std mode if you want to run Etherguard under WSL.")
-	nouapi       = flag.Bool("no-uapi", false, "Disable UAPI\nWith UAPI, you can check etherguard status by \"wg\" command")
 	pprofaddr    = flag.String("pprof", "", "pprof listing address")
 	version      = flag.Bool("version", false, "Show version")
 	help         = flag.Bool("help", false, "Show this help")
@@ -56,10 +49,6 @@ func main() {
 		return
 	}
 
-	uapiDir := os.Getenv(ENV_EG_UAPI_DIR)
-	if uapiDir != "" {
-		ipc.SetsocketDirectory(uapiDir)
-	}
 	nonSecureRand.Seed(time.Now().UnixNano())
 	if *pprofaddr != "" {
 		go func() {
@@ -74,9 +63,9 @@ func main() {
 	var err error
 	switch *mode {
 	case "edge":
-		err = Edge(*tconfig, !*nouapi, *printExample, *bind)
+		err = Edge(*tconfig, *printExample, *bind)
 	case "super":
-		err = Super(*tconfig, !*nouapi, *printExample, *bind)
+		err = Super(*tconfig, *printExample, *bind)
 	case "solve":
 		err = path.Solve(*tconfig, *printExample)
 	case "gencfg":

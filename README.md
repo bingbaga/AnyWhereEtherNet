@@ -4,7 +4,7 @@
 
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](code_of_conduct.md)
 
-A Full Mesh Layer2 VPN based on wireguard-go  
+A transport-agnostic Full Mesh Layer2 VPN.  
 
 OSPF can find best route based on it's cost.  
 But sometimes the latency are different in the packet goes and back.  
@@ -34,9 +34,6 @@ Usage of ./etherguard-go:
         Show this help
   -mode string
         Running mode. [super|edge|solve|gencfg]
-  -no-uapi
-        Disable UAPI
-        With UAPI, you can check etherguard status by "wg" command
   -version
         Show version
 ```
@@ -45,8 +42,8 @@ Usage of ./etherguard-go:
 
 Mode        | Description
 ------------|:-----
-Static Mode | No dynamic routing, no handshake server.<br>Similar to original wireguard , all configs are static<br>[Detail](example_config/static_mode/README.md)
-Super Mode | Inspired by [n2n](https://github.com/ntop/n2n). There 2 types of node: SuperNode and EdgeNode<br>EdgeNode must connect to SuperNode first，get connection info of other EdgeNode from the SuperNode<br>The SuperNode runs [Floyd-Warshall Algorithm](https://en.wikipedia.org/wiki/Floyd–Warshall_algorithm)，and distribute the result to all other EdgeNodes.<br>[Detail](example_config/super_mode/README.md)
+Static Mode | No dynamic routing, no handshake server.<br>All peer transport endpoints are configured statically<br>[Detail](example_config/static_mode/README.md)
+Super Mode | Inspired by [n2n](https://github.com/ntop/n2n). There 2 types of node: SuperNode and EdgeNode<br>EdgeNode must connect to SuperNode first，get connection info of other EdgeNode from the SuperNode<br>The SuperNode runs [Floyd-Warshall Algorithm](https://en.wikipedia.org/wiki/Floyd–Warshall_algorithm)，and distribute the result to all other EdgeNodes.<br>SuperNode is the control plane by default, not the mandatory data relay. EdgeNodes still try to connect each other directly and only forward according to the computed next hop.<br>[Detail](example_config/super_mode/README.md)
 P2P Mode | Inspired by [tinc](https://github.com/gsliepen/tinc), There are no SuperNode. All EdgeNode will exchange information each other.<br>EdgeNodes are keep trying to connect each other, and notify all other peers success or not.<br>All edges runs [Floyd-Warshall Algorithm](https://en.wikipedia.org/wiki/Floyd–Warshall_algorithm) locally and find the best route by it self.<br>**Not recommend to use this mode in production environment, not test yet.**<br>[Detail](example_config/p2p_mode/README.md)
 
 ## Quick start
@@ -64,7 +61,7 @@ Install Go 1.16
 ```bash
 add-apt-repository ppa:longsleep/golang-backports
 apt-get -y update
-apt-get install -y wireguard-tools golang-go build-essential git
+apt-get install -y golang-go build-essential git
 ```
 
 Build

@@ -1,30 +1,43 @@
 Interface:
-  IType: fd
-  Name: EgNet001
+  IType: tap
+  Name: egtap1
   VPPIFaceID: 1
   VPPBridgeID: 4242
-  MacAddrPrefix: 62:A6:A3:6D
+  MacAddrPrefix: 96:BB:DC:52
   IPv4CIDR: 192.168.76.0/24
   IPv6CIDR: fd95:71cb:a3df:e586::/64
   IPv6LLPrefix: fe80::a3df:0/112
   MTU: 1404
-  RecvAddr: 127.0.0.1:4001
-  SendAddr: 127.0.0.1:5001
-  L2HeaderMode: kbdbg
+  RecvAddr: ""
+  SendAddr: ""
+  L2HeaderMode: nochg
 NodeID: 1
-NodeName: EgNet001
+NodeName: EgNet001TapXor
 PostScript: ""
 DefaultTTL: 200
 L2FIBTimeout: 3600
-IdentityPrivateKey: 12CRJpzWOTRQDOdtROtwwWb68B4HHjSbrS1WySAkWYI=
-ListenPort: 0
+IdentityPrivateKey: lyQLML+TbAZvrJpa25ARTAfMvHVQa/a1n3Wcwo7nkDU=
+ListenPort: 3001
+Transport:
+  Protocol: udp_xor
+  XOR:
+    Key: change-this-shared-xor-key
+    ObfuscateHeaders: false
+    ReplayWindow: 64
+FwMark: 0
+DisabledAf:
+  IPv4: false
+  IPv6: true
+  ListenIPv4: ""
+  ListenIPv6: ""
+AfPrefer: 4
 LogLevel:
-  LogLevel: verbose
+  LogLevel: error
   LogTransit: true
   LogNormal: true
   LogControl: true
   LogInternal: true
-  LogNTP: true
+  LogNTP: false
 DynamicRoute:
   SendPingInterval: 16
   PeerAliveTimeout: 70
@@ -36,13 +49,14 @@ DynamicRoute:
   SaveNewPeers: true
   SuperNode:
     UseSuperNode: true
-    SharedKey: 2eOq1sJlEs3No80xYOaKJ059ElgRaSveyMu9IyQG3X8=
+    SharedKey: Ld8FN/TNcmR21xdhMTCSeZBxrJ1z+FFvnQSnTwSxgUE=
     EndpointV4: 127.0.0.1:3456
-    PeerKeyV4: 10CPQrpXKqXxnjtpdxDwnYqLglnuRnCFsiSAjxMrMTc=
+    PeerKeyV4: j6+qNLYwGLILh4VKXc2fGeQy828RnRasA6zKHk3T/kw=
     EndpointV6: ""
-    PeerKeyV6: KhpV1fJ+jtNT6S5wKUZJbb0oFlDNMS5qxO0f5Ow/QQU=
+    PeerKeyV6: ""
     EndpointEdgeAPIUrl: http://127.0.0.1:3456/eg_net/eg_api
     SkipLocalIP: false
+    AdditionalLocalIP: []
     SuperNodeInfoTimeout: 50
   P2P:
     UseP2P: false
@@ -55,31 +69,11 @@ DynamicRoute:
       TimeoutCheckInterval: 5
       RecalculateCoolDown: 5
   NTPConfig:
-    UseNTP: true
+    UseNTP: false
     MaxServerUse: 8
-    SyncTimeInterval: 3600
+    SyncTimeInterval: 99999
     NTPTimeout: 3
-    Servers:
-    - time.google.com
-    - time1.google.com
-    - time2.google.com
-    - time3.google.com
-    - time4.google.com
-    - time1.facebook.com
-    - time2.facebook.com
-    - time3.facebook.com
-    - time4.facebook.com
-    - time5.facebook.com
-    - time.cloudflare.com
-    - time.apple.com
-    - time.asia.apple.com
-    - time.euro.apple.com
-    - time.windows.com
-    - pool.ntp.org
-    - 0.pool.ntp.org
-    - 1.pool.ntp.org
-    - 2.pool.ntp.org
-    - 3.pool.ntp.org
+    Servers: []
 NextHopTable: {}
-ResetConnInterval: 86400
+ResetEndPointInterval: 600
 Peers: []

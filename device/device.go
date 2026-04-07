@@ -22,6 +22,7 @@ import (
 	"github.com/KusakabeSi/EtherGuard-VPN/ratelimiter"
 	"github.com/KusakabeSi/EtherGuard-VPN/rwcancel"
 	"github.com/KusakabeSi/EtherGuard-VPN/tap"
+	"github.com/KusakabeSi/EtherGuard-VPN/transport"
 	fixed_time_cache "github.com/KusakabeSi/go-cache"
 )
 
@@ -84,6 +85,7 @@ type Device struct {
 	SuperConfigPath string
 	SuperConfig     *mtypes.SuperConfig
 	enabledAf       conn.EnabledAf
+	transport       transport.Protocol
 
 	Chan_server_register    chan mtypes.RegisterMsg
 	Chan_server_pong        chan mtypes.PongMsg
@@ -124,9 +126,8 @@ type Device struct {
 		mtu    int32
 	}
 
-	ipcMutex sync.RWMutex
-	closed   chan int
-	log      *Logger
+	closed chan int
+	log    *Logger
 }
 
 type IdAndTime struct {
@@ -326,6 +327,7 @@ func (device *Device) SetPrivateKey(sk NoisePrivateKey) error {
 
 func NewDevice(tapDevice tap.Device, id mtypes.Vertex, bind conn.Bind, logger *Logger, graph *path.IG, IsSuperNode bool, configpath string, econfig *mtypes.EdgeConfig, sconfig *mtypes.SuperConfig, superevents *mtypes.SUPER_Events, version string) *Device {
 	device := new(Device)
+	var err error
 	device.state.state = uint32(deviceStateDown)
 	device.closed = make(chan int)
 	device.log = logger
@@ -346,6 +348,19 @@ func NewDevice(tapDevice tap.Device, id mtypes.Vertex, bind conn.Bind, logger *L
 	device.Version = version
 	device.JWTSecret = mtypes.ByteSlice2Byte32(mtypes.RandomBytes(32, []byte(fmt.Sprintf("%v", time.Now()))))
 	device.enabledAf = bind.EnabledAf()
+
+	transportCfg := mtypes.TransportConfig{}
+	if IsSuperNode {
+		if sconfig != nil {
+			transportCfg = sconfig.Transport
+		}
+	} else if econfig != nil {
+		transportCfg = econfig.Transport
+	}
+	device.transport, err = transport.New(transportCfg)
+	if err != nil {
+		panic(err)
+	}
 
 	device.state_hashes.NhTable.Store("")
 	device.state_hashes.Peer.Store("")
@@ -434,7 +449,7 @@ func (device *Device) LookupPeerIDAtConfig(pk NoisePublicKey) (ID mtypes.Vertex,
 		peerlist = device.SuperConfig.Peers
 		pkstr := pk.ToString()
 		for _, peerinfo := range peerlist {
-			if peerinfo.PubKey == pkstr {
+			if peerinfo.GetPeerKey() == pkstr {
 				return peerinfo.NodeID, nil
 			}
 		}
@@ -446,7 +461,7 @@ func (device *Device) LookupPeerIDAtConfig(pk NoisePublicKey) (ID mtypes.Vertex,
 		peerlist = device.EdgeConfig.Peers
 		pkstr := pk.ToString()
 		for _, peerinfo := range peerlist {
-			if peerinfo.PubKey == pkstr {
+			if peerinfo.GetPeerKey() == pkstr {
 				return peerinfo.NodeID, nil
 			}
 		}
@@ -564,10 +579,8 @@ func RandomPSK() (pk NoisePresharedKey) {
 }
 
 func (device *Device) GetConnurl(v mtypes.Vertex) string {
-	if peer, has := device.peers.IDMap[v]; has {
-		if peer.endpoint != nil {
-			return peer.endpoint.DstToString()
-		}
+	if peer := device.LookupPeerByID(v, nil); peer != nil && peer.endpoint != nil {
+		return peer.endpoint.DstToString()
 	}
 	return ""
 }

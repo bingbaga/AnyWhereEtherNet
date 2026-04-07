@@ -11,11 +11,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
 	"os"
 	"os/exec"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -24,7 +22,6 @@ import (
 	"github.com/KusakabeSi/EtherGuard-VPN/conn"
 	"github.com/KusakabeSi/EtherGuard-VPN/device"
 	"github.com/KusakabeSi/EtherGuard-VPN/gencfg"
-	"github.com/KusakabeSi/EtherGuard-VPN/ipc"
 	"github.com/KusakabeSi/EtherGuard-VPN/mtypes"
 	"github.com/KusakabeSi/EtherGuard-VPN/path"
 	"github.com/KusakabeSi/EtherGuard-VPN/tap"
@@ -67,7 +64,7 @@ func printExampleSuperConf() {
 	fmt.Print(string(scprint))
 }
 
-func Super(configPath string, useUAPI bool, printExample bool, bindmode string) (err error) {
+func Super(configPath string, printExample bool, bindmode string) (err error) {
 	if printExample {
 		printExampleSuperConf()
 		return nil
@@ -121,11 +118,17 @@ func Super(configPath string, useUAPI bool, printExample bool, bindmode string) 
 		fmt.Sprintf("(%s) ", NodeName+"_v6"),
 	)
 
+	if err := validateTransportConfig(sconfig.Transport); err != nil {
+		return err
+	}
+
 	EnabledAf := sconfig.DisableAf.Disalbed2Enabled()
 	if !EnabledAf.IPv4 {
+		sconfig.IdentityPrivateKeyV4 = ""
 		sconfig.PrivKeyV4 = ""
 	}
 	if !EnabledAf.IPv6 {
+		sconfig.IdentityPrivateKeyV6 = ""
 		sconfig.PrivKeyV6 = ""
 	}
 
@@ -157,28 +160,36 @@ func Super(configPath string, useUAPI bool, printExample bool, bindmode string) 
 	thetap6, _ := tap.CreateDummyTAP()
 	httpobj.http_device6 = device.NewDevice(thetap6, mtypes.NodeID_SuperNode, conn.NewDefaultBind(EnabledAf.GetOnly6(), bindmode, sconfig.FwMark), logger6, httpobj.http_graph, true, configPath, nil, &sconfig, httpobj.http_super_chains, Version)
 	defer httpobj.http_device6.Close()
-	if sconfig.PrivKeyV4 != "" {
-		pk4, err := device.Str2PriKey(sconfig.PrivKeyV4)
+	if sconfig.GetIdentityPrivateKeyV4() != "" {
+		pk4, err := device.Str2PriKey(sconfig.GetIdentityPrivateKeyV4())
 		if err != nil {
 			fmt.Println("Error decode base64 ", err)
 			return err
 		}
 		httpobj.http_device4.SetPrivateKey(pk4)
-		httpobj.http_device4.IpcSet("fwmark=" + fmt.Sprint(sconfig.FwMark) + "\n")
-		httpobj.http_device4.IpcSet("listen_port=" + strconv.Itoa(sconfig.ListenPort) + "\n")
-		httpobj.http_device4.IpcSet("replace_peers=true\n")
+		if err := httpobj.http_device4.BindSetMark(sconfig.FwMark); err != nil {
+			return err
+		}
+		if err := httpobj.http_device4.SetListenPort(uint16(sconfig.ListenPort)); err != nil {
+			return err
+		}
+		httpobj.http_device4.RemoveAllPeers()
 	}
 
-	if sconfig.PrivKeyV6 != "" {
-		pk6, err := device.Str2PriKey(sconfig.PrivKeyV6)
+	if sconfig.GetIdentityPrivateKeyV6() != "" {
+		pk6, err := device.Str2PriKey(sconfig.GetIdentityPrivateKeyV6())
 		if err != nil {
 			fmt.Println("Error decode base64 ", err)
 			return err
 		}
 		httpobj.http_device6.SetPrivateKey(pk6)
-		httpobj.http_device6.IpcSet("fwmark=" + fmt.Sprint(sconfig.FwMark) + "\n")
-		httpobj.http_device6.IpcSet("listen_port=" + strconv.Itoa(sconfig.ListenPort) + "\n")
-		httpobj.http_device6.IpcSet("replace_peers=true\n")
+		if err := httpobj.http_device6.BindSetMark(sconfig.FwMark); err != nil {
+			return err
+		}
+		if err := httpobj.http_device6.SetListenPort(uint16(sconfig.ListenPort)); err != nil {
+			return err
+		}
+		httpobj.http_device6.RemoveAllPeers()
 	}
 
 	for _, peerconf := range sconfig.Peers {
@@ -192,19 +203,6 @@ func Super(configPath string, useUAPI bool, printExample bool, bindmode string) 
 
 	errs := make(chan error, 1<<3)
 	term := make(chan os.Signal, 1)
-	if useUAPI {
-		uapi4, err := startUAPI(NodeName+"_v4", logger4, httpobj.http_device4, errs)
-		if err != nil {
-			return err
-		}
-		defer uapi4.Close()
-		uapi6, err := startUAPI(NodeName+"_v6", logger6, httpobj.http_device6, errs)
-		if err != nil {
-			return err
-		}
-		defer uapi6.Close()
-	}
-
 	go Event_server_event_hendler(httpobj.http_graph, httpobj.http_super_chains)
 	go RoutinePushSettings(mtypes.S2TD(sconfig.RePushConfigInterval))
 	go RoutineTimeoutCheck()
@@ -253,14 +251,14 @@ func Super(configPath string, useUAPI bool, printExample bool, bindmode string) 
 
 func super_peeradd(peerconf mtypes.SuperPeerInfo) error {
 	// No lock, lock before call me
-	pk, err := device.Str2PubKey(peerconf.PubKey)
+	pk, err := device.Str2PubKey(peerconf.GetPeerKey())
 	if err != nil {
 		return fmt.Errorf("error decode base64 :%v", err)
 	}
-	if httpobj.http_sconfig.PrivKeyV4 != "" {
+	if httpobj.http_sconfig.GetIdentityPrivateKeyV4() != "" {
 		var psk device.NoisePresharedKey
-		if peerconf.PSKey != "" {
-			psk, err = device.Str2PSKey(peerconf.PSKey)
+		if peerconf.GetSharedKey() != "" {
+			psk, err = device.Str2PSKey(peerconf.GetSharedKey())
 			if err != nil {
 				return fmt.Errorf("error decode base64 :%v", err)
 			}
@@ -270,11 +268,11 @@ func super_peeradd(peerconf mtypes.SuperPeerInfo) error {
 			return fmt.Errorf("error create peer id :%v", err)
 		}
 		peer4.StaticConn = false
-		if peerconf.PSKey != "" {
+		if peerconf.GetSharedKey() != "" {
 			peer4.SetPSK(psk)
 		}
-		if peerconf.EndPoint != "" {
-			err = peer4.SetEndpointFromConnURL(peerconf.EndPoint, conn.EnabledAf4, 0, true)
+		if endpoint := peerconf.GetTransportEndpoint(); endpoint != "" {
+			err = peer4.SetEndpointFromConnURL(endpoint, conn.EnabledAf4, 0, true)
 			if err != nil {
 				if httpobj.http_sconfig.LogLevel.LogInternal {
 					fmt.Printf("Internal: Set endpoint failed:%v\n", err)
@@ -282,10 +280,10 @@ func super_peeradd(peerconf mtypes.SuperPeerInfo) error {
 			}
 		}
 	}
-	if httpobj.http_sconfig.PrivKeyV6 != "" {
+	if httpobj.http_sconfig.GetIdentityPrivateKeyV6() != "" {
 		var psk device.NoisePresharedKey
-		if peerconf.PSKey != "" {
-			psk, err = device.Str2PSKey(peerconf.PSKey)
+		if peerconf.GetSharedKey() != "" {
+			psk, err = device.Str2PSKey(peerconf.GetSharedKey())
 			if err != nil {
 				return fmt.Errorf("error decode base64 :%v", err)
 			}
@@ -295,11 +293,11 @@ func super_peeradd(peerconf mtypes.SuperPeerInfo) error {
 			return fmt.Errorf("error create peer id :%v", err)
 		}
 		peer6.StaticConn = false
-		if peerconf.PSKey != "" {
+		if peerconf.GetSharedKey() != "" {
 			peer6.SetPSK(psk)
 		}
-		if peerconf.EndPoint != "" {
-			err = peer6.SetEndpointFromConnURL(peerconf.EndPoint, conn.EnabledAf6, 0, true)
+		if endpoint := peerconf.GetTransportEndpoint(); endpoint != "" {
+			err = peer6.SetEndpointFromConnURL(endpoint, conn.EnabledAf6, 0, true)
 			if err != nil {
 				if httpobj.http_sconfig.LogLevel.LogInternal {
 					fmt.Printf("Internal: Set endpoint failed:%v\n", err)
@@ -328,9 +326,9 @@ func super_peeradd(peerconf mtypes.SuperPeerInfo) error {
 	PS.JETSecret.Store(mtypes.JWTSecret{}) // mtypes.JWTSecret
 	PS.httpPostCount.Store(uint64(0))      // uint64
 	PS.LastSeen.Store(time.Time{})         // time.Time
-	httpobj.http_PeerState[peerconf.PubKey] = &PS
+	httpobj.http_PeerState[peerconf.GetPeerKey()] = &PS
 
-	httpobj.http_PeerIPs[peerconf.PubKey] = &HttpPeerLocalIP{}
+	httpobj.http_PeerIPs[peerconf.GetPeerKey()] = &HttpPeerLocalIP{}
 	return nil
 }
 
@@ -339,7 +337,7 @@ func super_peerdel(toDelete mtypes.Vertex) {
 	if _, has := httpobj.http_PeerID2Info[toDelete]; !has {
 		return
 	}
-	PubKey := httpobj.http_PeerID2Info[toDelete].PubKey
+	PubKey := httpobj.http_PeerID2Info[toDelete].GetPeerKey()
 	httpobj.http_pskdb.DelNode(toDelete)
 	delete(httpobj.http_PeerState, PubKey)
 	delete(httpobj.http_PeerIPs, PubKey)
@@ -383,7 +381,7 @@ func Event_server_event_hendler(graph *path.IG, events *mtypes.SUPER_Events) {
 			var should_push_superparams bool
 			NodeID := reg_msg.Node_id
 			httpobj.RLock()
-			PubKey := httpobj.http_PeerID2Info[NodeID].PubKey
+			PubKey := httpobj.http_PeerID2Info[NodeID].GetPeerKey()
 			if reg_msg.Node_id < mtypes.NodeID_Special {
 				httpobj.http_PeerState[PubKey].LastSeen.Store(time.Now())
 				httpobj.http_PeerState[PubKey].JETSecret.Store(reg_msg.JWTSecret)
@@ -572,41 +570,4 @@ func PushServerParams(force bool) {
 			}
 		}
 	}
-}
-
-func startUAPI(interfaceName string, logger *device.Logger, the_device *device.Device, errs chan error) (net.Listener, error) {
-	fileUAPI, err := func() (*os.File, error) {
-		uapiFdStr := os.Getenv(ENV_EG_UAPI_FD)
-		if uapiFdStr == "" {
-			return ipc.UAPIOpen(interfaceName)
-		}
-		// use supplied fd
-		fd, err := strconv.ParseUint(uapiFdStr, 10, 32)
-		if err != nil {
-			return nil, err
-		}
-		return os.NewFile(uintptr(fd), ""), nil
-	}()
-	if err != nil {
-		fmt.Printf("Error create UAPI socket \n")
-		return nil, err
-	}
-	uapi, err := ipc.UAPIListen(interfaceName, fileUAPI)
-	if err != nil {
-		logger.Errorf("Failed to listen on uapi socket: %v", err)
-		return nil, err
-	}
-
-	go func() {
-		for {
-			conn, err := uapi.Accept()
-			if err != nil {
-				errs <- err
-				return
-			}
-			go the_device.IpcHandle(conn)
-		}
-	}()
-	logger.Verbosef("UAPI listener started")
-	return uapi, err
 }

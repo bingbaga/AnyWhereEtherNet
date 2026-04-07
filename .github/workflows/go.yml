@@ -21,7 +21,7 @@ jobs:
           curl -L https://packagecloud.io/fdio/release/gpgkey | sudo apt-key add -
           sudo apt-get -y update
           sudo apt-get install -y libmemif libmemif-dev
-          sudo apt-get install -y wireguard-tools upx-ucl
+          sudo apt-get install -y upx-ucl
 
       - name: Build x86_64
         run: |
@@ -81,7 +81,7 @@ jobs:
 
             apt-get -y update
             apt-get install -y libmemif libmemif-dev || true
-            apt-get install -y wireguard-tools golang-go build-essential git
+            apt-get install -y golang-go build-essential git
           run: |
             make all static
             mkdir /artifacts/${artifact_dir}

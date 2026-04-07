@@ -61,6 +61,9 @@ func (elem *QueueInboundElement) clearPointers() {
  * NOTE: Not thread safe, but called by sequential receiver!
  */
 func (peer *Peer) keepKeyFreshReceiving() {
+	if !peer.device.usesNoiseTransport() {
+		return
+	}
 	if peer.timers.sentLastMinuteHandshake.Get() {
 		return
 	}
@@ -86,6 +89,11 @@ func (device *Device) RoutineReceiveIncoming(recv conn.ReceiveFunc) {
 	}()
 
 	device.log.Verbosef("Routine: receive incoming %s - started", recvName)
+
+	if !device.usesNoiseTransport() {
+		device.routineReceiveIncomingXOR(recv)
+		return
+	}
 
 	// receive datagrams until conn is closed
 
@@ -129,14 +137,14 @@ func (device *Device) RoutineReceiveIncoming(recv conn.ReceiveFunc) {
 		packet := buffer[:size]
 		msgType := path.Usage(packet[0])
 		msgTTL := uint8(packet[1])
-		msgType_wg := msgType
+		msgTypeSecure := msgType
 		if msgType >= path.MessageTransportType {
-			msgType_wg = path.MessageTransportType
+			msgTypeSecure = path.MessageTransportType
 		}
 
 		var okay bool
 
-		switch msgType_wg {
+		switch msgTypeSecure {
 
 		// check if transport
 
@@ -214,6 +222,71 @@ func (device *Device) RoutineReceiveIncoming(recv conn.ReceiveFunc) {
 				buffer = device.GetMessageBuffer()
 			default:
 			}
+		}
+	}
+}
+
+func (device *Device) routineReceiveIncomingXOR(recv conn.ReceiveFunc) {
+	buffer := device.GetMessageBuffer()
+
+	var (
+		err         error
+		size        int
+		endpoint    conn.Endpoint
+		deathSpiral int
+	)
+
+	for {
+		size, endpoint, err = recv(buffer[:])
+
+		if err != nil {
+			device.PutMessageBuffer(buffer)
+			if errors.Is(err, net.ErrClosed) {
+				return
+			}
+			device.log.Verbosef("Failed to receive xor packet: %v", err)
+			if neterr, ok := err.(net.Error); ok && !neterr.Temporary() {
+				return
+			}
+			if deathSpiral < 10 {
+				deathSpiral++
+				time.Sleep(time.Second / 3)
+				buffer = device.GetMessageBuffer()
+				continue
+			}
+			return
+		}
+		deathSpiral = 0
+
+		packet := buffer[:size]
+		decoded, err := device.transport.Decode(packet)
+		if err != nil {
+			continue
+		}
+
+		peer := device.LookupPeerByID(decoded.SenderID, endpoint)
+		if peer == nil {
+			continue
+		}
+		if !peer.xorReplay.ValidateCounter(decoded.Sequence, device.EdgeConfig.Transport.GetReplayWindow()) {
+			continue
+		}
+
+		elem := device.GetInboundElement()
+		elem.Type = decoded.Usage
+		elem.TTL = decoded.TTL
+		elem.packet = decoded.Payload
+		elem.buffer = buffer
+		elem.keypair = nil
+		elem.endpoint = endpoint
+		elem.counter = uint64(decoded.Sequence)
+		elem.Mutex = sync.Mutex{}
+
+		if peer.isRunning.Get() {
+			peer.queue.inbound.c <- elem
+			buffer = device.GetMessageBuffer()
+		} else {
+			device.PutInboundElement(elem)
 		}
 	}
 }
@@ -436,26 +509,36 @@ func (peer *Peer) RoutineSequentialReceiver() {
 		if currentTime.After((*peer.LastPacketReceivedAdd1Sec.Load().(*time.Time))) {
 			peer.LastPacketReceivedAdd1Sec.Store(&storeTime)
 		}
-		elem.Lock()
-		if elem.packet == nil {
-			// decryption failed
-			goto skip
-		}
+		if device.usesNoiseTransport() {
+			elem.Lock()
+			if elem.packet == nil {
+				// decryption failed
+				goto skip
+			}
 
-		if !elem.keypair.replayFilter.ValidateCounter(elem.counter, RejectAfterMessages) {
-			goto skip
-		}
+			if !elem.keypair.replayFilter.ValidateCounter(elem.counter, RejectAfterMessages) {
+				goto skip
+			}
 
-		peer.SetEndpointFromPacket(elem.endpoint)
-		if peer.ReceivedWithKeypair(elem.keypair) {
-			peer.timersHandshakeComplete()
-			peer.SendStagedPackets()
-		}
+			peer.SetEndpointFromPacket(elem.endpoint)
+			if peer.ReceivedWithKeypair(elem.keypair) {
+				peer.timersHandshakeComplete()
+				peer.SendStagedPackets()
+			}
 
-		peer.keepKeyFreshReceiving()
-		peer.timersAnyAuthenticatedPacketTraversal()
-		peer.timersAnyAuthenticatedPacketReceived()
-		atomic.AddUint64(&peer.stats.rxBytes, uint64(len(elem.packet)+MinMessageSize))
+			peer.keepKeyFreshReceiving()
+			peer.timersAnyAuthenticatedPacketTraversal()
+			peer.timersAnyAuthenticatedPacketReceived()
+			atomic.AddUint64(&peer.stats.rxBytes, uint64(len(elem.packet)+MinMessageSize))
+		} else {
+			if elem.packet == nil {
+				goto skip
+			}
+			peer.SetEndpointFromPacket(elem.endpoint)
+			peer.timersAnyAuthenticatedPacketTraversal()
+			peer.timersAnyAuthenticatedPacketReceived()
+			atomic.AddUint64(&peer.stats.rxBytes, uint64(len(elem.packet)+device.transport.Overhead()))
+		}
 
 		if len(elem.packet) == 0 {
 			device.log.Verbosef("%v - Receiving keepalive packet", peer)

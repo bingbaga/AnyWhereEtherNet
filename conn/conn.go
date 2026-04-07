@@ -3,7 +3,7 @@
  * Copyright (C) 2017-2021 WireGuard LLC. All Rights Reserved.
  */
 
-// Package conn implements WireGuard's network connections.
+// Package conn implements the project's network connections.
 package conn
 
 import (
@@ -95,14 +95,14 @@ var EnabledAf46 = EnabledAf{
 }
 
 // BindSocketToInterface is implemented by Bind objects that support being
-// tied to a single network interface. Used by wireguard-windows.
+// tied to a single network interface.
 type BindSocketToInterface interface {
 	BindSocketToInterface4(interfaceIndex uint32, blackhole bool) error
 	BindSocketToInterface6(interfaceIndex uint32, blackhole bool) error
 }
 
 // PeekLookAtSocketFd is implemented by Bind objects that support having their
-// file descriptor peeked at. Used by wireguard-android.
+// file descriptor peeked at.
 type PeekLookAtSocketFd interface {
 	PeekLookAtSocketFd4() (fd int, err error)
 	PeekLookAtSocketFd6() (fd int, err error)
@@ -110,7 +110,7 @@ type PeekLookAtSocketFd interface {
 
 // An Endpoint maintains the source/destination caching for a peer.
 //
-//	dst: the remote address of a peer ("endpoint" in uapi terminology)
+//	dst: the remote address of a peer
 //	src: the local address from which datagrams originate going to the peer
 type Endpoint interface {
 	ClearSrc()           // clears the source address

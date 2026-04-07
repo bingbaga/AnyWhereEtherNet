@@ -16,7 +16,7 @@ NodeName: EgNet1
 PostScript: ""
 DefaultTTL: 200
 L2FIBTimeout: 3600
-PrivKey: kkKXE1uFha84Yd8YIDUI02OsjVi2v7CM60rIUgC7zP4=
+IdentityPrivateKey: kkKXE1uFha84Yd8YIDUI02OsjVi2v7CM60rIUgC7zP4=
 ListenPort: 3001
 DisabledAf:
   IPv4: false
@@ -39,11 +39,11 @@ DynamicRoute:
   SaveNewPeers: false
   SuperNode:
     UseSuperNode: false
-    PSKey: ""
+    SharedKey: ""
     EndpointV4: ""
-    PubKeyV4: ""
+    PeerKeyV4: ""
     EndpointV6: ""
-    PubKeyV6: ""
+    PeerKeyV6: ""
     EndpointEdgeAPIUrl: ""
     SkipLocalIP: false
     AdditionalLocalIP: []
@@ -68,8 +68,8 @@ NextHopTable: {}
 ResetEndPointInterval: 600
 Peers:
 - NodeID: 2
-  PubKey: 5bKEWuXXY78d54pWOWiuE39g14qmkEvUyuE4MeiXf3k=
-  PSKey: m3/mX6xoT3a/2wkHYO7YPpMfBr+W0Z+51fPTx2p0+FU=
+  PeerKey: 5bKEWuXXY78d54pWOWiuE39g14qmkEvUyuE4MeiXf3k=
+  SharedKey: m3/mX6xoT3a/2wkHYO7YPpMfBr+W0Z+51fPTx2p0+FU=
   EndPoint: 127.0.0.1:3002
   PersistentKeepalive: 0
   Static: true

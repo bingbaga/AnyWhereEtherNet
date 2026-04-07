@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-// A Timer manages time-based aspects of the WireGuard protocol.
+// A Timer manages time-based aspects of the session protocol.
 // Timer roughly copies the interface of the Linux kernel's struct timer_list.
 type Timer struct {
 	*time.Timer
@@ -143,6 +143,9 @@ func expiredPersistentKeepalive(peer *Peer) {
 
 /* Should be called after an authenticated data packet is sent. */
 func (peer *Peer) timersDataSent() {
+	if !peer.device.usesNoiseTransport() {
+		return
+	}
 	if peer.timersActive() && !peer.timers.newHandshake.IsPending() {
 		peer.timers.newHandshake.Mod(KeepaliveTimeout + RekeyTimeout + time.Millisecond*time.Duration(rand.Int31n(RekeyTimeoutJitterMaxMs)))
 	}
@@ -150,6 +153,9 @@ func (peer *Peer) timersDataSent() {
 
 /* Should be called after an authenticated data packet is received. */
 func (peer *Peer) timersDataReceived() {
+	if !peer.device.usesNoiseTransport() {
+		return
+	}
 	if peer.timersActive() {
 		if !peer.timers.sendKeepalive.IsPending() {
 			peer.timers.sendKeepalive.Mod(KeepaliveTimeout)
@@ -161,6 +167,9 @@ func (peer *Peer) timersDataReceived() {
 
 /* Should be called after any type of authenticated packet is sent -- keepalive, data, or handshake. */
 func (peer *Peer) timersAnyAuthenticatedPacketSent() {
+	if !peer.device.usesNoiseTransport() {
+		return
+	}
 	if peer.timersActive() {
 		peer.timers.sendKeepalive.Del()
 	}
@@ -168,6 +177,9 @@ func (peer *Peer) timersAnyAuthenticatedPacketSent() {
 
 /* Should be called after any type of authenticated packet is received -- keepalive, data, or handshake. */
 func (peer *Peer) timersAnyAuthenticatedPacketReceived() {
+	if !peer.device.usesNoiseTransport() {
+		return
+	}
 	if peer.timersActive() {
 		peer.timers.newHandshake.Del()
 	}
@@ -175,6 +187,9 @@ func (peer *Peer) timersAnyAuthenticatedPacketReceived() {
 
 /* Should be called after a handshake initiation message is sent. */
 func (peer *Peer) timersHandshakeInitiated() {
+	if !peer.device.usesNoiseTransport() {
+		return
+	}
 	if peer.timersActive() {
 		peer.timers.retransmitHandshake.Mod(RekeyTimeout + time.Millisecond*time.Duration(rand.Int31n(RekeyTimeoutJitterMaxMs)))
 	}
@@ -182,6 +197,9 @@ func (peer *Peer) timersHandshakeInitiated() {
 
 /* Should be called after a handshake response message is received and processed or when getting key confirmation via the first data message. */
 func (peer *Peer) timersHandshakeComplete() {
+	if !peer.device.usesNoiseTransport() {
+		return
+	}
 	if peer.timersActive() {
 		peer.timers.retransmitHandshake.Del()
 	}
@@ -192,6 +210,9 @@ func (peer *Peer) timersHandshakeComplete() {
 
 /* Should be called after an ephemeral key is created, which is before sending a handshake response or after receiving a handshake response. */
 func (peer *Peer) timersSessionDerived() {
+	if !peer.device.usesNoiseTransport() {
+		return
+	}
 	if peer.timersActive() {
 		peer.timers.zeroKeyMaterial.Mod(RejectAfterTime * 3)
 	}
@@ -202,6 +223,9 @@ func (peer *Peer) timersAnyAuthenticatedPacketTraversal() {
 	keepalive := atomic.LoadUint32(&peer.persistentKeepaliveInterval)
 	if keepalive > 0 && peer.timersActive() {
 		peer.timers.persistentKeepalive.Mod(time.Duration(keepalive) * time.Second)
+	}
+	if !peer.device.usesNoiseTransport() {
+		return
 	}
 }
 

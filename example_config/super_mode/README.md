@@ -53,6 +53,27 @@ Before reading this, I'd like to suggest you read the [static mode](../static_mo
 In the super mode of the edge node, the `NextHopTable` and `Peers` section are useless. All infos are download from super node.  
 Meanwhile, super node will generate pre shared key for inter-edge communication(if `UsePSKForInterEdge` enabled).
 
+## Control Plane vs Data Plane
+
+SuperNode is the control plane by default, not the mandatory relay for all user traffic.
+
+- EdgeNodes register to SuperNode and download peer / route information from it.
+- After that, EdgeNodes still try to talk to each other directly.
+- `Normal Packet` forwarding follows the calculated `NextHopTable`.
+- If a direct path exists, traffic can go edge-to-edge directly.
+- If a direct path does not exist or is not preferred, traffic may go through another edge as the next hop.
+- SuperNode is not the default transit hop for every packet.
+
+```text
+          control plane
+  Edge A <--------> Super <--------> Edge B
+     \                                  /
+      \------ preferred data path -----/
+
+      fallback:
+      Edge A -> Edge C -> Edge B
+```
+
 ### SuperMsg
 There are new type of DstID called `SuperMsg`(65534). All packets sends to and receive from super node are using this packet type.  
 This packet will not send to any other edge node, just like `DstID == self.NodeID`
@@ -78,6 +99,8 @@ While EdgeNodes get their peer info, they will trying to talk each other directl
 2. Receive a `Ping`, Subtract the peer time from local time, we get a single way latency.
 3. Send a `Pong` to SuperNode with single way latency, let SuperNode calculate the NextHopTable
 4. Wait the SuperNode push `UpdateNhTable` message and download it.
+
+So in super mode, SuperNode distributes topology knowledge, while the actual data path is still decided edge-side by the graph and next-hop table.
 
 ### <a name="AdditionalCost"></a>AdditionalCost
 While we have all latency data of all nodes, `AdditionalCost` will be applied before `Floyd-Warshall` calculated.
@@ -211,7 +234,7 @@ Exanple:
 ```bash
 curl -X POST "http://127.0.0.1:3456/eg_net/eg_api/manage/peer/add?Password=passwd_addpeer" \
  -H "Content-Type: application/x-www-form-urlencoded" \
- -d "NodeID=100&Name=Node_100&PubKey=DG%2FLq1bFpE%2F6109emAoO3iaC%2BshgWtdRaGBhW3soiSI%3D&AdditionalCost=1000&PSKey=w5t64vFEoyNk%2FiKJP3oeSi9eiGEiPteZmf2o0oI2q2U%3D&SkipLocalIP=false"
+ -d "NodeID=100&Name=Node_100&PeerKey=DG%2FLq1bFpE%2F6109emAoO3iaC%2BshgWtdRaGBhW3soiSI%3D&AdditionalCost=1000&SharedKey=w5t64vFEoyNk%2FiKJP3oeSi9eiGEiPteZmf2o0oI2q2U%3D&SkipLocalIP=false"
 ```
 
 Parameter:
@@ -219,8 +242,8 @@ Parameter:
 1. Post body:
     1. NodeID: Node ID
     1. Name: Name
-    1. PubKey: Public Key
-    1. PSKey: Pre shared Key
+    1. PeerKey: Public Key
+    1. SharedKey: Pre shared Key
     1. AdditionalCost:  Additional cost for packet transfer. Unit: ms
     1. SkipLocalIP: Skip local IP reported by the node
     1. nexthoptable: If the `graphrecalculatesetting` of your super node is in static mode, you need to provide a new `NextHopTable` in json format in this parameter.
@@ -244,7 +267,7 @@ curl "http://127.0.0.1:3456/eg_net/eg_api/manage/peer/del?Password=passwd_delpee
 
 We can also use privkey to delete, the same as above, but use privkey parameter only.
 ```bash
-curl "http://127.0.0.1:3456/eg_net/eg_api/manage/peer/del?PrivKey=iquaLyD%2BYLzW3zvI0JGSed9GfDqHYMh%2FvUaU0PYVAbQ%3D"
+curl "http://127.0.0.1:3456/eg_net/eg_api/manage/peer/del?IdentityPrivateKey=iquaLyD%2BYLzW3zvI0JGSed9GfDqHYMh%2FvUaU0PYVAbQ%3D"
 ```
 
 Parameter:
@@ -281,8 +304,8 @@ Key                 | Description
 --------------------|:-----
 NodeName            | node name
 PostScript          | Running script after initialized
-PrivKeyV4           | Private key for IPv4 session
-PrivKeyV6           | Private key for IPv6 session
+IdentityPrivateKeyV4           | Private key for IPv4 session
+IdentityPrivateKeyV6           | Private key for IPv6 session
 ListenPort          | UDP listen port
 ListenPort_EdgeAPI  | HTTP EdgeAPI listen port
 ListenPort_ManageAPI| HTTP ManageAPI listen port
@@ -320,8 +343,8 @@ RecalculateCoolDown        | Floyd-Warshal is an O(n^3)time complexity algorithm
 <a name="EdgeNodes"></a>Peers      | Description
 --------------------|:-----
 NodeID              | Peer's node ID
-PubKey              | Peer's public key
-PSKey               | Pre shared key
+PeerKey              | Peer's public key
+SharedKey               | Pre shared key
 [AdditionalCost](#AdditionalCost)      | AdditionalCost(unit:ms)<br> `-1` means uses client's self configuration.
 SkipLocalIP         | Ignore Edge reported local IP, use public IP only while udp-hole-punching
 
@@ -345,11 +368,11 @@ SaveNewPeers         | Save peer info to local file.
 <a name="SuperNode"></a>SuperNode      | Description
 ---------------------|:-----
 UseSuperNode         | Enable SuperMode
-PSKey                | PreShared Key to communicate to SuperNode
+SharedKey                | PreShared Key to communicate to SuperNode
 EndpointV4           | IPv4 Endpoint of the SuperNode
-PubKeyV4             | Public Key for IPv4 session to SuperNode
+PeerKeyV4             | Public Key for IPv4 session to SuperNode
 EndpointV6           | IPv6 Endpoint of the SuperNode
-PubKeyV6             | Public Key for IPv6 session to SuperNode
+PeerKeyV6             | Public Key for IPv6 session to SuperNode
 EndpointEdgeAPIUrl   | The EdgeAPI of the SuperNode
 SkipLocalIP          | Do not report local IP to SuperNode.
 SuperNodeInfoTimeout | Experimental option, SuperNode offline timeout, switch to P2P mode<br>P2P mode needs to be enabled first<br>This option is useless while `UseP2P=false`<br>P2P mode has not been tested, stability is unknown, it is not recommended for production use

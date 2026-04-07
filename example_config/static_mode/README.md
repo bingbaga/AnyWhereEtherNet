@@ -4,7 +4,7 @@
 ## Static mode
 
 No dynamic routing, no handshake server.  
-Similar to original wireguard , all configs are static.  
+All peer transport endpoints are configured statically , all configs are static.  
 Include the route table, you have to configure it in `NextHopTable` section in the config file.
 
 In this mode, there are no any Control Message, no connectivity check.  
@@ -126,7 +126,7 @@ NodeName          | Node Name.
 PostScript        | Script that will run after initialized
 DefaultTTL        | TTL(etherguard layer. not affect ethernet layer)
 L2FIBTimeout      | The timeout of the L2FIB table(Similar to ARP table)
-PrivKey           | Private key. Same spec as wireguard.
+IdentityPrivateKey           | Identity private key for this node.
 ListenPort        | UDP lesten port
 [LogLevel](#LogLevel)| Log related settings
 [DynamicRoute](../super_mode/README.md#DynamicRoute)      | Dynamic Route related settings. Not work at static mode.
@@ -180,10 +180,10 @@ LogNTP      | NTP related logs.
 <a name="Peers"></a>Peers      | Description
 --------------------|:-----
 NodeID              | Node ID.
-PubKey              | Public key.
-PSKey               | Pre shared key. 
+PeerKey              | Public key.
+SharedKey               | Pre shared key. 
 EndPoint            | Peer EndPoint.
-PersistentKeepalive | PersistentKeepalive, same as wireguard
+PersistentKeepalive | PersistentKeepalive parameter
 Static              | Do not overwrite by roaming and reset the connection every `ResetConnInterval` seconds.
 
 #### Run example config

@@ -26,8 +26,10 @@ type EdgeConfig struct {
 	PostScript            string           `yaml:"PostScript"`
 	DefaultTTL            uint8            `yaml:"DefaultTTL"`
 	L2FIBTimeout          float64          `yaml:"L2FIBTimeout"`
+	IdentityPrivateKey    string           `yaml:"IdentityPrivateKey"`
 	PrivKey               string           `yaml:"PrivKey"`
 	ListenPort            int              `yaml:"ListenPort"`
+	Transport             TransportConfig  `yaml:"Transport"`
 	FwMark                uint32           `yaml:"FwMark"`
 	DisableAf             conn.EnabledAf   `yaml:"DisabledAf"`
 	AfPrefer              int              `yaml:"AfPrefer"`
@@ -41,9 +43,12 @@ type EdgeConfig struct {
 type SuperConfig struct {
 	NodeName                string                  `yaml:"NodeName"`
 	PostScript              string                  `yaml:"PostScript"`
+	IdentityPrivateKeyV4    string                  `yaml:"IdentityPrivateKeyV4"`
+	IdentityPrivateKeyV6    string                  `yaml:"IdentityPrivateKeyV6"`
 	PrivKeyV4               string                  `yaml:"PrivKeyV4"`
 	PrivKeyV6               string                  `yaml:"PrivKeyV6"`
 	ListenPort              int                     `yaml:"ListenPort"`
+	Transport               TransportConfig         `yaml:"Transport"`
 	ListenPort_EdgeAPI      string                  `yaml:"ListenPort_EdgeAPI"`
 	ListenPort_ManageAPI    string                  `yaml:"ListenPort_ManageAPI"`
 	FwMark                  uint32                  `yaml:"FwMark"`
@@ -87,24 +92,120 @@ type InterfaceConf struct {
 	L2HeaderMode  string `yaml:"L2HeaderMode"`
 }
 
+type TransportConfig struct {
+	Protocol string              `yaml:"Protocol"`
+	XOR      TransportXORConfig  `yaml:"XOR"`
+	TLS      TransportTLSConfig  `yaml:"TLS"`
+	DTLS     TransportDTLSConfig `yaml:"DTLS"`
+}
+
+type TransportXORConfig struct {
+	Key              string `yaml:"Key"`
+	ObfuscateHeaders bool   `yaml:"ObfuscateHeaders"`
+	ReplayWindow     uint32 `yaml:"ReplayWindow"`
+}
+
+type TransportTLSConfig struct {
+	ServerName         string `yaml:"ServerName"`
+	InsecureSkipVerify bool   `yaml:"InsecureSkipVerify"`
+	CertificateFile    string `yaml:"CertificateFile"`
+	PrivateKeyFile     string `yaml:"PrivateKeyFile"`
+	CACertificateFile  string `yaml:"CACertificateFile"`
+}
+
+type TransportDTLSConfig struct {
+	CertificateFile    string `yaml:"CertificateFile"`
+	PrivateKeyFile     string `yaml:"PrivateKeyFile"`
+	CACertificateFile  string `yaml:"CACertificateFile"`
+	InsecureSkipVerify bool   `yaml:"InsecureSkipVerify"`
+}
+
+func (cfg TransportConfig) GetProtocol() string {
+	switch cfg.Protocol {
+	case "", "udp_xor":
+		return "udp_xor"
+	case "tls_tunnel":
+		return "tls_tunnel"
+	case "dtls_tunnel":
+		return "dtls_tunnel"
+	default:
+		return cfg.Protocol
+	}
+}
+
+func (cfg TransportConfig) GetReplayWindow() uint32 {
+	if cfg.XOR.ReplayWindow == 0 {
+		return 64
+	}
+	return cfg.XOR.ReplayWindow
+}
+
 type PeerInfo struct {
 	NodeID              Vertex `yaml:"NodeID"`
+	PeerKey             string `yaml:"PeerKey"`
+	SharedKey           string `yaml:"SharedKey"`
 	PubKey              string `yaml:"PubKey"`
 	PSKey               string `yaml:"PSKey"`
 	EndPoint            string `yaml:"EndPoint"`
+	TransportEndpoint   string `yaml:"TransportEndpoint"`
 	PersistentKeepalive uint32 `yaml:"PersistentKeepalive"`
 	Static              bool   `yaml:"Static"`
 }
 
+func (p PeerInfo) GetTransportEndpoint() string {
+	if p.TransportEndpoint != "" {
+		return p.TransportEndpoint
+	}
+	return p.EndPoint
+}
+
+func (p PeerInfo) GetPeerKey() string {
+	if p.PeerKey != "" {
+		return p.PeerKey
+	}
+	return p.PubKey
+}
+
+func (p PeerInfo) GetSharedKey() string {
+	if p.SharedKey != "" {
+		return p.SharedKey
+	}
+	return p.PSKey
+}
+
 type SuperPeerInfo struct {
-	NodeID         Vertex  `yaml:"NodeID"`
-	Name           string  `yaml:"Name"`
-	PubKey         string  `yaml:"PubKey"`
-	PSKey          string  `yaml:"PSKey"`
-	AdditionalCost float64 `yaml:"AdditionalCost"`
-	SkipLocalIP    bool    `yaml:"SkipLocalIP"`
-	EndPoint       string  `yaml:"EndPoint"`
-	ExternalIP     string  `yaml:"ExternalIP"`
+	NodeID            Vertex  `yaml:"NodeID"`
+	Name              string  `yaml:"Name"`
+	PeerKey           string  `yaml:"PeerKey"`
+	SharedKey         string  `yaml:"SharedKey"`
+	PubKey            string  `yaml:"PubKey"`
+	PSKey             string  `yaml:"PSKey"`
+	AdditionalCost    float64 `yaml:"AdditionalCost"`
+	SkipLocalIP       bool    `yaml:"SkipLocalIP"`
+	EndPoint          string  `yaml:"EndPoint"`
+	TransportEndpoint string  `yaml:"TransportEndpoint"`
+	ExternalIP        string  `yaml:"ExternalIP"`
+}
+
+func (p SuperPeerInfo) GetTransportEndpoint() string {
+	if p.TransportEndpoint != "" {
+		return p.TransportEndpoint
+	}
+	return p.EndPoint
+}
+
+func (p SuperPeerInfo) GetPeerKey() string {
+	if p.PeerKey != "" {
+		return p.PeerKey
+	}
+	return p.PubKey
+}
+
+func (p SuperPeerInfo) GetSharedKey() string {
+	if p.SharedKey != "" {
+		return p.SharedKey
+	}
+	return p.PSKey
 }
 
 type LoggerInfo struct {
@@ -156,15 +257,75 @@ type NTPInfo struct {
 
 type SuperInfo struct {
 	UseSuperNode         bool     `yaml:"UseSuperNode"`
+	SharedKey            string   `yaml:"SharedKey"`
 	PSKey                string   `yaml:"PSKey"`
 	EndpointV4           string   `yaml:"EndpointV4"`
+	PeerKeyV4            string   `yaml:"PeerKeyV4"`
 	PubKeyV4             string   `yaml:"PubKeyV4"`
 	EndpointV6           string   `yaml:"EndpointV6"`
+	PeerKeyV6            string   `yaml:"PeerKeyV6"`
 	PubKeyV6             string   `yaml:"PubKeyV6"`
 	EndpointEdgeAPIUrl   string   `yaml:"EndpointEdgeAPIUrl"`
 	SkipLocalIP          bool     `yaml:"SkipLocalIP"`
 	AdditionalLocalIP    []string `yaml:"AdditionalLocalIP"`
 	SuperNodeInfoTimeout float64  `yaml:"SuperNodeInfoTimeout"`
+}
+
+func (cfg EdgeConfig) GetIdentityPrivateKey() string {
+	if cfg.IdentityPrivateKey != "" {
+		return cfg.IdentityPrivateKey
+	}
+	return cfg.PrivKey
+}
+
+func (cfg *EdgeConfig) SetIdentityPrivateKey(v string) {
+	cfg.IdentityPrivateKey = v
+	cfg.PrivKey = ""
+}
+
+func (cfg SuperConfig) GetIdentityPrivateKeyV4() string {
+	if cfg.IdentityPrivateKeyV4 != "" {
+		return cfg.IdentityPrivateKeyV4
+	}
+	return cfg.PrivKeyV4
+}
+
+func (cfg SuperConfig) GetIdentityPrivateKeyV6() string {
+	if cfg.IdentityPrivateKeyV6 != "" {
+		return cfg.IdentityPrivateKeyV6
+	}
+	return cfg.PrivKeyV6
+}
+
+func (cfg *SuperConfig) SetIdentityPrivateKeyV4(v string) {
+	cfg.IdentityPrivateKeyV4 = v
+	cfg.PrivKeyV4 = ""
+}
+
+func (cfg *SuperConfig) SetIdentityPrivateKeyV6(v string) {
+	cfg.IdentityPrivateKeyV6 = v
+	cfg.PrivKeyV6 = ""
+}
+
+func (cfg SuperInfo) GetSharedKey() string {
+	if cfg.SharedKey != "" {
+		return cfg.SharedKey
+	}
+	return cfg.PSKey
+}
+
+func (cfg SuperInfo) GetPeerKeyV4() string {
+	if cfg.PeerKeyV4 != "" {
+		return cfg.PeerKeyV4
+	}
+	return cfg.PubKeyV4
+}
+
+func (cfg SuperInfo) GetPeerKeyV6() string {
+	if cfg.PeerKeyV6 != "" {
+		return cfg.PeerKeyV6
+	}
+	return cfg.PubKeyV6
 }
 
 type P2PInfo struct {

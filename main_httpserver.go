@@ -106,6 +106,23 @@ func extractParamsStr(params url.Values, key string, w http.ResponseWriter) (str
 	return valA[0], nil
 }
 
+func extractParamsStrAny(params url.Values, keys []string, w http.ResponseWriter) (string, error) {
+	for _, key := range keys {
+		if valA, has := params[key]; has {
+			return valA[0], nil
+		}
+	}
+	if len(keys) == 0 {
+		return "", fmt.Errorf("missing parameter")
+	}
+	errstr := fmt.Sprintf("Paramater %v: Missing paramater.", keys[0])
+	if w != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(errstr))
+	}
+	return "", fmt.Errorf(errstr)
+}
+
 func extractParamsFloat(params url.Values, key string, bitSize int, w http.ResponseWriter) (float64, error) {
 	val, err := extractParamsStr(params, key, w)
 	if err != nil {
@@ -152,6 +169,7 @@ func get_api_peers(old_State_hash string) (api_peerinfo mtypes.API_Peers, StateH
 	// No lock
 	api_peerinfo = make(mtypes.API_Peers)
 	for _, peerinfo := range httpobj.http_sconfig.Peers {
+		peerKey := peerinfo.GetPeerKey()
 		connV4 := httpobj.http_device4.GetConnurl(peerinfo.NodeID)
 		connV6 := httpobj.http_device6.GetConnurl(peerinfo.NodeID)
 
@@ -181,21 +199,21 @@ func get_api_peers(old_State_hash string) (api_peerinfo mtypes.API_Peers, StateH
 		if len(connV4)+len(connV6) == 0 {
 			continue
 		}
-		api_peerinfo[peerinfo.PubKey] = mtypes.API_Peerinfo{
+		api_peerinfo[peerKey] = mtypes.API_Peerinfo{
 			NodeID:  peerinfo.NodeID,
-			PSKey:   peerinfo.PSKey,
+			PSKey:   peerinfo.GetSharedKey(),
 			Connurl: &mtypes.API_connurl{},
 		}
-		if httpobj.http_PeerState[peerinfo.PubKey].LastSeen.Load().(time.Time).Add(mtypes.S2TD(httpobj.http_sconfig.PeerAliveTimeout)).After(time.Now()) {
+		if httpobj.http_PeerState[peerKey].LastSeen.Load().(time.Time).Add(mtypes.S2TD(httpobj.http_sconfig.PeerAliveTimeout)).After(time.Now()) {
 			if connV4 != "" {
-				api_peerinfo[peerinfo.PubKey].Connurl.ExternalV4 = map[string]float64{connV4: 4}
+				api_peerinfo[peerKey].Connurl.ExternalV4 = map[string]float64{connV4: 4}
 			}
 			if connV6 != "" {
-				api_peerinfo[peerinfo.PubKey].Connurl.ExternalV6 = map[string]float64{connV6: 6}
+				api_peerinfo[peerKey].Connurl.ExternalV6 = map[string]float64{connV6: 6}
 			}
 			if !peerinfo.SkipLocalIP {
-				api_peerinfo[peerinfo.PubKey].Connurl.LocalV4 = httpobj.http_PeerIPs[peerinfo.PubKey].LocalIPv4
-				api_peerinfo[peerinfo.PubKey].Connurl.LocalV6 = httpobj.http_PeerIPs[peerinfo.PubKey].LocalIPv6
+				api_peerinfo[peerKey].Connurl.LocalV4 = httpobj.http_PeerIPs[peerKey].LocalIPv4
+				api_peerinfo[peerKey].Connurl.LocalV6 = httpobj.http_PeerIPs[peerKey].LocalIPv6
 			}
 		}
 	}
@@ -237,7 +255,7 @@ func edge_get_superparams(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Paramater PubKey: NodeID and PubKey are not match"))
 		return
 	}
-	if httpobj.http_PeerID2Info[NodeID].PubKey != PubKey {
+	if httpobj.http_PeerID2Info[NodeID].GetPeerKey() != PubKey {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("Paramater PubKey: NodeID and PubKey are not match"))
 		return
@@ -297,7 +315,7 @@ func edge_get_peerinfo(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Paramater PubKey: NodeID and PubKey are not match"))
 		return
 	}
-	if httpobj.http_PeerID2Info[NodeID].PubKey != PubKey {
+	if httpobj.http_PeerID2Info[NodeID].GetPeerKey() != PubKey {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("Paramater PubKey: NodeID and PubKey are not match"))
 		return
@@ -368,7 +386,7 @@ func edge_get_nhtable(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Paramater PubKey: NodeID and PubKey are not match"))
 		return
 	}
-	if httpobj.http_PeerID2Info[NodeID].PubKey != PubKey {
+	if httpobj.http_PeerID2Info[NodeID].GetPeerKey() != PubKey {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("Paramater PubKey: NodeID and PubKey are not match"))
 		return
@@ -419,7 +437,7 @@ func edge_post_nodeinfo(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("NodeID and PunKey are not match"))
 		return
 	}
-	if httpobj.http_PeerID2Info[NodeID].PubKey != PubKey {
+	if httpobj.http_PeerID2Info[NodeID].GetPeerKey() != PubKey {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("NodeID and PunKey are not match"))
 		return
@@ -574,7 +592,7 @@ func manage_get_peerstate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		for _, peerinfo := range httpobj.http_sconfig.Peers {
-			LastSeenStr := httpobj.http_PeerState[peerinfo.PubKey].LastSeen.Load().(time.Time).String()
+			LastSeenStr := httpobj.http_PeerState[peerinfo.GetPeerKey()].LastSeen.Load().(time.Time).String()
 			hs.PeerInfo[peerinfo.NodeID] = HttpPeerInfo{
 				Name:     peerinfo.Name,
 				LastSeen: LastSeenStr,
@@ -614,7 +632,7 @@ func manage_peeradd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	PubKey, err := extractParamsStr(r.Form, "PubKey", w)
+	PubKey, err := extractParamsStrAny(r.Form, []string{"PeerKey", "PubKey"}, w)
 	if err != nil {
 		return
 	}
@@ -626,7 +644,7 @@ func manage_peeradd(w http.ResponseWriter, r *http.Request) {
 
 	SkipLocalIP := strings.EqualFold(SkipLocalIPS, "true")
 
-	PSKey, _ := extractParamsStr(r.Form, "PSKey", nil)
+	PSKey, _ := extractParamsStrAny(r.Form, []string{"SharedKey", "PSKey"}, nil)
 
 	httpobj.Lock()
 	defer httpobj.Unlock()
@@ -642,9 +660,9 @@ func manage_peeradd(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("Paramater Name: Node name exists"))
 			return
 		}
-		if peerinfo.PubKey == PubKey {
+		if peerinfo.GetPeerKey() == PubKey {
 			w.WriteHeader(http.StatusConflict)
-			w.Write([]byte("Paramater PubKey: PubKey exists"))
+			w.Write([]byte("Paramater PeerKey: PeerKey exists"))
 			return
 		}
 	}
@@ -665,8 +683,8 @@ func manage_peeradd(w http.ResponseWriter, r *http.Request) {
 		err = checkNhTable(NewNhTable, append(httpobj.http_sconfig.Peers, mtypes.SuperPeerInfo{
 			NodeID:         NodeID,
 			Name:           Name,
-			PubKey:         PubKey,
-			PSKey:          PSKey,
+			PeerKey:        PubKey,
+			SharedKey:      PSKey,
 			AdditionalCost: AdditionalCost,
 			SkipLocalIP:    SkipLocalIP,
 		}))
@@ -680,8 +698,8 @@ func manage_peeradd(w http.ResponseWriter, r *http.Request) {
 	err = super_peeradd(mtypes.SuperPeerInfo{
 		NodeID:         NodeID,
 		Name:           Name,
-		PubKey:         PubKey,
-		PSKey:          PSKey,
+		PeerKey:        PubKey,
+		SharedKey:      PSKey,
 		AdditionalCost: AdditionalCost,
 		SkipLocalIP:    SkipLocalIP,
 	})
@@ -693,8 +711,8 @@ func manage_peeradd(w http.ResponseWriter, r *http.Request) {
 	httpobj.http_sconfig.Peers = append(httpobj.http_sconfig.Peers, mtypes.SuperPeerInfo{
 		NodeID:         NodeID,
 		Name:           Name,
-		PubKey:         PubKey,
-		PSKey:          PSKey,
+		PeerKey:        PubKey,
+		SharedKey:      PSKey,
 		AdditionalCost: AdditionalCost,
 		SkipLocalIP:    SkipLocalIP,
 	})
@@ -702,8 +720,8 @@ func manage_peeradd(w http.ResponseWriter, r *http.Request) {
 	ioutil.WriteFile(httpobj.http_sconfig_path, mtypesBytes, 0644)
 	httpobj.http_econfig_tmp.NodeID = NodeID
 	httpobj.http_econfig_tmp.NodeName = Name
-	httpobj.http_econfig_tmp.PrivKey = "Your_Private_Key"
-	httpobj.http_econfig_tmp.DynamicRoute.SuperNode.PSKey = PSKey
+	httpobj.http_econfig_tmp.SetIdentityPrivateKey("Your_Private_Key")
+	httpobj.http_econfig_tmp.DynamicRoute.SuperNode.SharedKey = PSKey
 	httpobj.http_econfig_tmp.DynamicRoute.AdditionalCost = AdditionalCost
 	httpobj.http_econfig_tmp.DynamicRoute.SuperNode.SkipLocalIP = SkipLocalIP
 	httpobj.http_econfig_tmp.NextHopTable = make(mtypes.NextHopTable)
@@ -741,7 +759,7 @@ func manage_peerupdate(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(fmt.Sprintf("Paramater NodeID: \"%v\" not found", NodeID)))
 		return
 	}
-	PubKey := httpobj.http_PeerID2Info[toUpdate].PubKey
+	PubKey := httpobj.http_PeerID2Info[toUpdate].GetPeerKey()
 	Updated_params := make(map[string]string)
 	new_superpeerinfo := httpobj.http_PeerID2Info[toUpdate]
 	r.ParseForm()
@@ -879,7 +897,7 @@ func manage_superupdate(w http.ResponseWriter, r *http.Request) {
 	defer httpobj.Unlock()
 	for _, peerinfo := range httpobj.http_PeerID2Info {
 		SuperParams.AdditionalCost = peerinfo.AdditionalCost
-		PubKey := peerinfo.PubKey
+		PubKey := peerinfo.GetPeerKey()
 		SuperParamStr, _ := json.Marshal(SuperParams)
 		md5_hash_raw := md5.Sum(append(SuperParamStr, httpobj.http_HashSalt...))
 		new_hash_str := hex.EncodeToString(md5_hash_raw[:])
@@ -924,26 +942,26 @@ func manage_peerdel(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else { // user don't provide the password
-		PrivKey, err = extractParamsStr(params, "PrivKey", w)
+		PrivKey, err = extractParamsStrAny(params, []string{"IdentityPrivateKey", "PrivKey"}, w)
 		if err != nil {
 			return
 		}
 		privk, err := device.Str2PriKey(PrivKey)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf("Paramater PrivKey: %v", err)))
+			w.Write([]byte(fmt.Sprintf("Paramater IdentityPrivateKey: %v", err)))
 			return
 		}
 		pubk := privk.PublicKey()
 		PubKey = pubk.ToString()
 		for _, peerinfo := range httpobj.http_sconfig.Peers {
-			if peerinfo.PubKey == PubKey {
+			if peerinfo.GetPeerKey() == PubKey {
 				toDelete = peerinfo.NodeID
 			}
 		}
 		if toDelete == mtypes.NodeID_Broadcast {
 			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte(fmt.Sprintf("Paramater PrivKey: \"%v\" not found", PubKey)))
+			w.Write([]byte(fmt.Sprintf("Paramater IdentityPrivateKey: \"%v\" not found", PubKey)))
 			return
 		}
 	}

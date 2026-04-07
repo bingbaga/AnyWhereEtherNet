@@ -47,10 +47,10 @@ func (hs handshakeState) String() string {
 }
 
 const (
-	NoiseConstruction = "Noise_IKpsk2_25519_ChaChaPoly_BLAKE2s"
-	WGIdentifier      = "WireGuard v1 zx2c4 Jason@zx2c4.com"
-	WGLabelMAC1       = "mac1----"
-	WGLabelCookie     = "cookie--"
+	NoiseConstruction  = "Noise_IKpsk2_25519_ChaChaPoly_BLAKE2s"
+	ProtocolIdentifier = "EtherGuard session v1"
+	LabelMAC1          = "mac1----"
+	LabelCookie        = "cookie--"
 )
 
 const (
@@ -165,7 +165,7 @@ func (h *Handshake) mixKey(data []byte) {
  */
 func init() {
 	InitialChainKey = blake2s.Sum256([]byte(NoiseConstruction))
-	mixHash(&InitialHash, &InitialChainKey, []byte(WGIdentifier))
+	mixHash(&InitialHash, &InitialChainKey, []byte(ProtocolIdentifier))
 }
 
 func (device *Device) CreateMessageInitiation(peer *Peer) (*MessageInitiation, error) {

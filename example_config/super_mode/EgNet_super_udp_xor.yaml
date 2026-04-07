@@ -1,14 +1,20 @@
-NodeName: EgNetSN
+NodeName: EgNetSNXor
 PostScript: ""
 IdentityPrivateKeyV4: vm2M7cNXbrUFORMiLvlbAxXX0l0yduo5TAJ9vyRTQZE=
-IdentityPrivateKeyV6: xUJ4yaVl/O//PRS24UFMNXgmeF/rhykroCxdJrljFgE=
+IdentityPrivateKeyV6: ""
 ListenPort: 3456
+Transport:
+  Protocol: udp_xor
+  XOR:
+    Key: change-this-shared-xor-key
+    ObfuscateHeaders: false
+    ReplayWindow: 64
 ListenPort_EdgeAPI: "3456"
 ListenPort_ManageAPI: "3456"
 FwMark: 0
 DisabledAf:
   IPv4: false
-  IPv6: false
+  IPv6: true
   ListenIPv4: ""
   ListenIPv6: ""
 API_Prefix: /eg_net/eg_api
@@ -23,7 +29,7 @@ LogLevel:
   LogNormal: false
   LogControl: true
   LogInternal: true
-  LogNTP: true
+  LogNTP: false
 Passwords:
   ShowState: passwd_showstate
   AddPeer: passwd_addpeer
@@ -32,45 +38,35 @@ Passwords:
   UpdateSuper: passwd_updatesuper
 GraphRecalculateSetting:
   StaticMode: false
-  ManualLatency: 
+  ManualLatency:
     1:
       2: 1.14
     2:
       1: 5.14
-    100:
-      65535: 1.919
-    65535:
-      100: 8.1
   JitterTolerance: 30
   JitterToleranceMultiplier: 1.01
   TimeoutCheckInterval: 5
   RecalculateCoolDown: 5
 NextHopTable: {}
-EdgeTemplate: EgNet_edge001.yaml
+EdgeTemplate: EgNet_edge001_tap_udp_xor.yaml
 UsePSKForInterEdge: true
 ResetEndPointInterval: 600
 Peers:
-- NodeID: 1
-  Name: EgNet001
-  PeerKey: lMiu9Qvf9qTo+X539+IxyA3YOleXMVTKtfOVHAnOIic=
-  SharedKey: Ld8FN/TNcmR21xdhMTCSeZBxrJ1z+FFvnQSnTwSxgUE=
-  AdditionalCost: 10
-  SkipLocalIP: false
-  EndPoint: ""
-  ExternalIP: ""
-- NodeID: 2
-  Name: EgNet002
-  PeerKey: Ev271azq3FXmjhCWtwgVvqe9EN017mijjqMiB9LVQU8=
-  SharedKey: Wmhz6SvUNBGczD0iJjHn7gUGy15ahjQsr4lKJAqDE3A=
-  AdditionalCost: 10
-  SkipLocalIP: false
-  EndPoint: ""
-  ExternalIP: ""
-- NodeID: 100
-  Name: EgNet100
-  PeerKey: nL3BdnKYt+DGl783iYe/7JETVTZU31RkHQu4x49Wk0s=
-  SharedKey: Ffe8veAmFX/L8lmNxbb2sofBx/K1CCY3u1osKh0sL2g=
-  AdditionalCost: 10
-  SkipLocalIP: false
-  EndPoint: ""
-  ExternalIP: ""
+  - NodeID: 1
+    Name: EgNet001TapXor
+    PeerKey: lMiu9Qvf9qTo+X539+IxyA3YOleXMVTKtfOVHAnOIic=
+    SharedKey: Ld8FN/TNcmR21xdhMTCSeZBxrJ1z+FFvnQSnTwSxgUE=
+    AdditionalCost: 10
+    SkipLocalIP: false
+    EndPoint: ""
+    TransportEndpoint: ""
+    ExternalIP: ""
+  - NodeID: 2
+    Name: EgNet002TapXor
+    PeerKey: Ev271azq3FXmjhCWtwgVvqe9EN017mijjqMiB9LVQU8=
+    SharedKey: Wmhz6SvUNBGczD0iJjHn7gUGy15ahjQsr4lKJAqDE3A=
+    AdditionalCost: 10
+    SkipLocalIP: false
+    EndPoint: ""
+    TransportEndpoint: ""
+    ExternalIP: ""
