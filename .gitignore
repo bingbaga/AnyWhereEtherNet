@@ -3,3 +3,6 @@ etherguard-go-vpp
 etherguard-go-static
 vendor
 .ipynb_checkpoints
+.codex
+.env
+tmp_udp_xor_local/
