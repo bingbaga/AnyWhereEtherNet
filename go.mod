@@ -1,6 +1,6 @@
 module github.com/bingbaga/AnyWhereEtherNet
 
-go 1.17
+go 1.21
 
 require (
 	git.fd.io/govpp.git v0.4.0

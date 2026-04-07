@@ -33,9 +33,10 @@ jobs:
           git describe --tags --abbrev=0
           echo $VERSION
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.21
+          go-version-file: go.mod
+          cache: true
       - name: Install requirements
         run: |
           sudo apt-get -y update
