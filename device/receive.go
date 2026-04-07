@@ -19,10 +19,10 @@ import (
 
 	"golang.org/x/crypto/chacha20poly1305"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/conn"
-	"github.com/KusakabeSi/EtherGuard-VPN/mtypes"
-	"github.com/KusakabeSi/EtherGuard-VPN/path"
-	"github.com/KusakabeSi/EtherGuard-VPN/tap"
+	"github.com/bingbaga/AnyWhereEtherNet/conn"
+	"github.com/bingbaga/AnyWhereEtherNet/mtypes"
+	"github.com/bingbaga/AnyWhereEtherNet/path"
+	"github.com/bingbaga/AnyWhereEtherNet/tap"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 )

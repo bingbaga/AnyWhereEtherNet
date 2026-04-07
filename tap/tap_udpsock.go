@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/mtypes"
+	"github.com/bingbaga/AnyWhereEtherNet/mtypes"
 )
 
 type UdpSockTap struct {
-	name    string
-	mtu     int
-	recv    *net.UDPConn
-	send    *net.UDPAddr
-	static  bool
-	events  chan Event
+	name   string
+	mtu    int
+	recv   *net.UDPConn
+	send   *net.UDPAddr
+	static bool
+	events chan Event
 }
 
 // New creates and returns a new TUN interface for the application.
@@ -22,12 +22,12 @@ func CreateUDPSockTAP(iconfig mtypes.InterfaceConf, NodeID mtypes.Vertex) (tapde
 	// Setup TUN Config
 
 	tap := &UdpSockTap{
-		name:    iconfig.Name,
-		mtu:     1500,
-		recv:    nil,
-		send:    nil,
-		static:  false,
-		events:  make(chan Event, 1<<5),
+		name:   iconfig.Name,
+		mtu:    1500,
+		recv:   nil,
+		send:   nil,
+		static: false,
+		events: make(chan Event, 1<<5),
 	}
 
 	if iconfig.RecvAddr == "" && iconfig.SendAddr == "" {

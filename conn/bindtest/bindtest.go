@@ -12,7 +12,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/conn"
+	"github.com/bingbaga/AnyWhereEtherNet/conn"
 )
 
 type ChannelBind struct {

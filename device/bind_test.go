@@ -8,7 +8,7 @@ package device
 import (
 	"errors"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/conn"
+	"github.com/bingbaga/AnyWhereEtherNet/conn"
 )
 
 type DummyDatagram struct {

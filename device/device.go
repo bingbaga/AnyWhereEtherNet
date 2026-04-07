@@ -16,14 +16,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/conn"
-	"github.com/KusakabeSi/EtherGuard-VPN/mtypes"
-	"github.com/KusakabeSi/EtherGuard-VPN/path"
-	"github.com/KusakabeSi/EtherGuard-VPN/ratelimiter"
-	"github.com/KusakabeSi/EtherGuard-VPN/rwcancel"
-	"github.com/KusakabeSi/EtherGuard-VPN/tap"
-	"github.com/KusakabeSi/EtherGuard-VPN/transport"
 	fixed_time_cache "github.com/KusakabeSi/go-cache"
+	"github.com/bingbaga/AnyWhereEtherNet/conn"
+	"github.com/bingbaga/AnyWhereEtherNet/mtypes"
+	"github.com/bingbaga/AnyWhereEtherNet/path"
+	"github.com/bingbaga/AnyWhereEtherNet/ratelimiter"
+	"github.com/bingbaga/AnyWhereEtherNet/rwcancel"
+	"github.com/bingbaga/AnyWhereEtherNet/tap"
+	"github.com/bingbaga/AnyWhereEtherNet/transport"
 )
 
 type Device struct {

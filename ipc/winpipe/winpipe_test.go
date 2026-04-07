@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 /* SPDX-License-Identifier: MIT
@@ -21,8 +22,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bingbaga/AnyWhereEtherNet/ipc/winpipe"
 	"golang.org/x/sys/windows"
-	"github.com/KusakabeSi/EtherGuard-VPN/ipc/winpipe"
 )
 
 func randomPipePath() string {

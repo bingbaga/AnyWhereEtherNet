@@ -1,4 +1,4 @@
-module github.com/KusakabeSi/EtherGuard-VPN
+module github.com/bingbaga/AnyWhereEtherNet
 
 go 1.17
 

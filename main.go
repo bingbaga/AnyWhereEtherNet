@@ -17,9 +17,9 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/gencfg"
-	"github.com/KusakabeSi/EtherGuard-VPN/path"
-	"github.com/KusakabeSi/EtherGuard-VPN/tap"
+	"github.com/bingbaga/AnyWhereEtherNet/gencfg"
+	"github.com/bingbaga/AnyWhereEtherNet/path"
+	"github.com/bingbaga/AnyWhereEtherNet/tap"
 )
 
 const (
@@ -41,7 +41,7 @@ var (
 func main() {
 	flag.Parse()
 	if *version {
-		fmt.Printf("etherguard-go %s\n%s-%s\n%s\n\nA full mesh layer 2 VPN powered by Floyd Warshall algorithm.\nInformation available at https://github.com/KusakabeSi/EtherGuard-VPN.\nCopyright (C) Kusakabe Si <si@kskb.eu.org>.\n", Version, runtime.GOOS, runtime.GOARCH, tap.VPP_SUPPORT)
+		fmt.Printf("etherguard-go %s\n%s-%s\n%s\n\nA full mesh layer 2 VPN powered by Floyd Warshall algorithm.\nInformation available at https://github.com/bingbaga/AnyWhereEtherNet.\nCopyright (C) Kusakabe Si <si@kskb.eu.org>.\n", Version, runtime.GOOS, runtime.GOARCH, tap.VPP_SUPPORT)
 		return
 	}
 	if *help {

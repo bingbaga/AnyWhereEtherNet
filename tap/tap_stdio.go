@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/mtypes"
+	"github.com/bingbaga/AnyWhereEtherNet/mtypes"
 )
 
 type L2MODE uint8

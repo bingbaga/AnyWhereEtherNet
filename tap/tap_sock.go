@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/mtypes"
+	"github.com/bingbaga/AnyWhereEtherNet/mtypes"
 )
 
 type SockServerTap struct {

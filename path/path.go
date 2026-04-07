@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/mtypes"
-	orderedmap "github.com/KusakabeSi/EtherGuard-VPN/orderdmap"
+	"github.com/bingbaga/AnyWhereEtherNet/mtypes"
+	orderedmap "github.com/bingbaga/AnyWhereEtherNet/orderdmap"
 	yaml "gopkg.in/yaml.v2"
 )
 

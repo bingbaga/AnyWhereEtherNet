@@ -24,10 +24,10 @@ import (
 	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/sha3"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/conn"
-	"github.com/KusakabeSi/EtherGuard-VPN/device"
-	"github.com/KusakabeSi/EtherGuard-VPN/mtypes"
-	"github.com/KusakabeSi/EtherGuard-VPN/path"
+	"github.com/bingbaga/AnyWhereEtherNet/conn"
+	"github.com/bingbaga/AnyWhereEtherNet/device"
+	"github.com/bingbaga/AnyWhereEtherNet/mtypes"
+	"github.com/bingbaga/AnyWhereEtherNet/path"
 	yaml "gopkg.in/yaml.v2"
 )
 

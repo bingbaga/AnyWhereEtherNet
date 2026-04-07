@@ -5,8 +5,8 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/mtypes"
-	"github.com/KusakabeSi/EtherGuard-VPN/path"
+	"github.com/bingbaga/AnyWhereEtherNet/mtypes"
+	"github.com/bingbaga/AnyWhereEtherNet/path"
 )
 
 const (

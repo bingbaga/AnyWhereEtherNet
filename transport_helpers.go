@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/KusakabeSi/EtherGuard-VPN/mtypes"
-	"github.com/KusakabeSi/EtherGuard-VPN/transport"
+	"github.com/bingbaga/AnyWhereEtherNet/mtypes"
+	"github.com/bingbaga/AnyWhereEtherNet/transport"
 )
 
 func validateTransportConfig(cfg mtypes.TransportConfig) error {

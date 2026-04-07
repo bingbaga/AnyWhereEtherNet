@@ -8,7 +8,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/mtypes"
+	"github.com/bingbaga/AnyWhereEtherNet/mtypes"
 )
 
 type FdTap struct {

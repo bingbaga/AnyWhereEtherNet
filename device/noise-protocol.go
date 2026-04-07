@@ -15,8 +15,8 @@ import (
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/poly1305"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/path"
-	"github.com/KusakabeSi/EtherGuard-VPN/tai64n"
+	"github.com/bingbaga/AnyWhereEtherNet/path"
+	"github.com/bingbaga/AnyWhereEtherNet/tai64n"
 )
 
 type handshakeState int

@@ -17,8 +17,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/conn"
-	"github.com/KusakabeSi/EtherGuard-VPN/mtypes"
+	"github.com/bingbaga/AnyWhereEtherNet/conn"
+	"github.com/bingbaga/AnyWhereEtherNet/mtypes"
 	"gopkg.in/yaml.v2"
 )
 

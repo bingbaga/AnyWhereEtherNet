@@ -27,8 +27,8 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/mtypes"
-	"github.com/KusakabeSi/EtherGuard-VPN/rwcancel"
+	"github.com/bingbaga/AnyWhereEtherNet/mtypes"
+	"github.com/bingbaga/AnyWhereEtherNet/rwcancel"
 )
 
 const (

@@ -18,8 +18,8 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/conn"
-	"github.com/KusakabeSi/EtherGuard-VPN/rwcancel"
+	"github.com/bingbaga/AnyWhereEtherNet/conn"
+	"github.com/bingbaga/AnyWhereEtherNet/rwcancel"
 )
 
 func (device *Device) startRouteListener(bind conn.Bind) (*rwcancel.RWCancel, error) {

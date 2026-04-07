@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"sync/atomic"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/conn"
+	"github.com/bingbaga/AnyWhereEtherNet/conn"
 )
 
 // Nonnegative integer ID of vertex

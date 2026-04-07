@@ -12,18 +12,17 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"strconv"
 	"strings"
 	"syscall"
 
 	"github.com/google/shlex"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/conn"
-	"github.com/KusakabeSi/EtherGuard-VPN/device"
-	"github.com/KusakabeSi/EtherGuard-VPN/gencfg"
-	"github.com/KusakabeSi/EtherGuard-VPN/mtypes"
-	"github.com/KusakabeSi/EtherGuard-VPN/path"
-	"github.com/KusakabeSi/EtherGuard-VPN/tap"
+	"github.com/bingbaga/AnyWhereEtherNet/conn"
+	"github.com/bingbaga/AnyWhereEtherNet/device"
+	"github.com/bingbaga/AnyWhereEtherNet/gencfg"
+	"github.com/bingbaga/AnyWhereEtherNet/mtypes"
+	"github.com/bingbaga/AnyWhereEtherNet/path"
+	"github.com/bingbaga/AnyWhereEtherNet/tap"
 	yaml "gopkg.in/yaml.v2"
 )
 

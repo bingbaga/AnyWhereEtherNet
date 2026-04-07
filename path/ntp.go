@@ -5,9 +5,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/mtypes"
-	orderedmap "github.com/KusakabeSi/EtherGuard-VPN/orderdmap"
 	"github.com/beevik/ntp"
+	"github.com/bingbaga/AnyWhereEtherNet/mtypes"
+	orderedmap "github.com/bingbaga/AnyWhereEtherNet/orderdmap"
 )
 
 var forever = time.Hour * 99999

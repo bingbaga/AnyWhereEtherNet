@@ -1,11 +1,12 @@
-//+build !vpp
+//go:build !vpp
+// +build !vpp
 
 package tap
 
 import (
 	"errors"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/mtypes"
+	"github.com/bingbaga/AnyWhereEtherNet/mtypes"
 )
 
 const (

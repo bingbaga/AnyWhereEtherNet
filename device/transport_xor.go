@@ -3,9 +3,9 @@ package device
 import (
 	"sync/atomic"
 
-	"github.com/KusakabeSi/EtherGuard-VPN/conn"
-	"github.com/KusakabeSi/EtherGuard-VPN/mtypes"
-	"github.com/KusakabeSi/EtherGuard-VPN/transport"
+	"github.com/bingbaga/AnyWhereEtherNet/conn"
+	"github.com/bingbaga/AnyWhereEtherNet/mtypes"
+	"github.com/bingbaga/AnyWhereEtherNet/transport"
 )
 
 func (device *Device) LookupPeerByID(id mtypes.Vertex, endpoint conn.Endpoint) *Peer {
