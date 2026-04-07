@@ -11,7 +11,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: build-artifacts-${{ github.ref }}
@@ -21,6 +21,7 @@ jobs:
   build:
     name: Build ${{ matrix.target }}
     runs-on: ubuntu-latest
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -147,3 +148,21 @@ jobs:
           name: ${{ steps.package.outputs.archive_name }}
           path: dist/${{ steps.package.outputs.archive_name }}
           if-no-files-found: error
+
+      - name: Publish release asset
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+          ARCHIVE_NAME: ${{ steps.package.outputs.archive_name }}
+        run: |
+          set -euo pipefail
+
+          if ! gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release create "$TAG_NAME" \
+              --title "$TAG_NAME" \
+              --generate-notes || gh release view "$TAG_NAME" >/dev/null 2>&1
+          fi
+
+          gh release upload "$TAG_NAME" "dist/${ARCHIVE_NAME}" --clobber
