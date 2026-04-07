@@ -15,7 +15,7 @@ generate-version-and-build:
 	ver="$$(printf 'package main\n\nvar Version = "%s"\n' "$$tag")" && \
 	[ "$$(cat version.go 2>/dev/null)" != "$$ver" ] && \
 	echo "$$ver" > version.go || true
-	@$(MAKE) etherguard-go
+	@$(MAKE) vpp
 
 etherguard-go: $(wildcard *.go) $(wildcard */*.go)
 	go mod download && \

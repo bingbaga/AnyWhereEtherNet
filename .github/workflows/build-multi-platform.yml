@@ -66,6 +66,16 @@ jobs:
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Install VPP dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get -y update
+          sudo apt-get install -y curl gnupg2
+          echo "deb [trusted=yes] https://packagecloud.io/fdio/release/ubuntu focal main" | sudo tee /etc/apt/sources.list.d/99fd.io.list
+          curl -L https://packagecloud.io/fdio/release/gpgkey | sudo apt-key add -
+          sudo apt-get -y update
+          sudo apt-get install -y libmemif libmemif-dev
+
       - name: Download dependencies
         run: go mod download
 
@@ -83,8 +93,17 @@ jobs:
 
           binary_name="etherguard-go"
 
+          # VPP build requires CGO. Currently we only enable it for amd64 to ensure build success.
+          if [ "$GOARCH" = "amd64" ]; then
+            export CGO_ENABLED=1
+            export CGO_CFLAGS="-I/usr/include/memif"
+            build_tags="-tags vpp"
+          else
+            export CGO_ENABLED=0
+            build_tags=""
+          fi
+
           build_env=(
-            "CGO_ENABLED=0"
             "GOOS=$GOOS"
             "GOARCH=$GOARCH"
           )
@@ -92,9 +111,15 @@ jobs:
             build_env+=("GOARM=$GOARM")
           fi
 
+          # Apply VPP patch before building (as done in Makefile)
+          if [ "$GOARCH" = "amd64" ]; then
+            patch -p0 -i govpp_remove_crcstring_check.patch || true
+          fi
+
           env "${build_env[@]}" \
             go build \
             -trimpath \
+            $build_tags \
             -ldflags "-s -w -X main.Version=$VERSION" \
             -o "dist/$binary_name" \
             .
