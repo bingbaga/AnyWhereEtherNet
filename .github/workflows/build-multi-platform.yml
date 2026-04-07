@@ -30,27 +30,18 @@ jobs:
             goarch: 386
             goarm: ""
             target: linux-x86
-            archive_ext: tar.gz
           - goos: linux
             goarch: amd64
             goarm: ""
             target: linux-amd64
-            archive_ext: tar.gz
           - goos: linux
             goarch: arm64
             goarm: ""
             target: linux-arm64
-            archive_ext: tar.gz
           - goos: linux
             goarch: arm
             goarm: "7"
             target: linux-armv7
-            archive_ext: tar.gz
-          - goos: windows
-            goarch: amd64
-            goarm: ""
-            target: windows-amd64
-            archive_ext: zip
 
     steps:
       - name: Checkout
@@ -91,9 +82,6 @@ jobs:
           mkdir -p dist
 
           binary_name="etherguard-go"
-          if [ "$GOOS" = "windows" ]; then
-            binary_name="${binary_name}.exe"
-          fi
 
           build_env=(
             "CGO_ENABLED=0"
@@ -129,16 +117,8 @@ jobs:
           cp "dist/${BINARY_NAME}" "$package_dir/"
           cp LICENSE "$package_dir/"
 
-          if [ "${{ matrix.archive_ext }}" = "zip" ]; then
-            (
-              cd dist
-              zip -r "${archive_base}.zip" "${archive_base}"
-            )
-            archive_name="${archive_base}.zip"
-          else
-            tar -C dist -czf "dist/${archive_base}.tar.gz" "${archive_base}"
-            archive_name="${archive_base}.tar.gz"
-          fi
+          tar -C dist -czf "dist/${archive_base}.tar.gz" "${archive_base}"
+          archive_name="${archive_base}.tar.gz"
 
           echo "archive_name=$archive_name" >> "$GITHUB_OUTPUT"
 
